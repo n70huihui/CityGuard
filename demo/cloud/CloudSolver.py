@@ -1,11 +1,12 @@
 import random, json, heapq
+import uuid
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
-from demo.demo_llm_io.system_prompts import parse_user_prompt_template
-from demo.demo_llm_io.output_models import ParseUserPromptVo
-from demo.demo_settings.variables import *
+from demo.llm_io.system_prompts import parse_user_prompt_template
+from demo.llm_io.output_models import ParseUserPromptVo
+from demo.global_settings.vehicles import vehicle_list
 from demo.vehicle.AgentCard import AgentCard
 from env_utils.llm_args import *
 
@@ -84,7 +85,11 @@ class CloudSolver:
         # 堆，TOP-K
         score_heap = []
         for agent_card in agent_card_models:
-            # TODO 这里使用欧式距离 + 距离速度权重来评分，评选又近又慢的车辆，考虑后续改进该评判方式
+            # 在工作中的车辆不参与评选
+            if agent_card.is_working:
+                continue
+
+            # TODO 这里使用欧式距离 + 速度权重来评分，评选又近又慢的车辆，考虑后续改进该评判方式
             distance = (agent_card.location[0] - location[0]) ** 2 + (agent_card.location[1] - location[1]) ** 2
             score = -distance * 0.7 - agent_card.speed * 0.3    # Python 默认小根堆，这里取反实现大根堆
             heapq.heappush(score_heap, (score, agent_card.car_id))
@@ -103,14 +108,25 @@ class CloudSolver:
 
         return best_vehicle_id_list
 
-    def __vehicle_execute_task(self, best_vehicle_id_list: list[str], task: str, is_log: bool) -> None:
+    def __vehicle_execute_task(self, best_vehicle_id_list: list[str], task_description: str, task_uuid: str, is_log: bool) -> None:
         """
         对应的车辆执行任务，这里直接模拟
         :param best_vehicle_id_list: 车辆 id 列表
-        :param task: 任务描述
+        :param task_description: 任务描述
+        :param task_uuid: 任务 uuid
         :param is_log: 是否打印日志
         :return: None
         """
+
+        # 转 Set 集合，方便查询
+        best_vehicle_id_set = set(best_vehicle_id_list)
+
+        # TODO 理论上应该把 id_list 广播给所有车辆，让车辆执行任务，这里直接模拟
+        for vehicle in vehicle_list:
+            if vehicle.car_id in best_vehicle_id_set:
+                # TODO 这里 for 循环他妈的还是串行的，找个时间改成并行
+                vehicle.execute_task(task_description, task_uuid, is_log)
+
 
     def query(self, user_prompt: str, num_of_vehicles: int = 3, is_log: bool = False) -> str:
         """
@@ -120,6 +136,8 @@ class CloudSolver:
         :param is_log: 是否打印日志
         :return: 结果报告
         """
+        # 生成本次任务的 uuid，用于 Memory 存储
+        task_uuid = "task-" + str(uuid.uuid4()).replace("-", "")
 
         # 1. 云端 LLM 解析用户输入
         parse_user_prompt_vo = self.__parse_user_prompt(user_prompt, is_log)
@@ -129,7 +147,9 @@ class CloudSolver:
 
         # 3. 挑选最优的车辆执行任务
         best_vehicle_id_list = self.__get_best_best_vehicle_id_list(parse_user_prompt_vo.location ,agent_cards, num_of_vehicles, is_log)
+        if not best_vehicle_id_list:
+            raise Exception("没有找到合适的车辆执行任务")
 
         # 4. 每辆车执行任务
-        self.__vehicle_execute_task(best_vehicle_id_list, parse_user_prompt_vo.task, is_log)
+        self.__vehicle_execute_task(best_vehicle_id_list, parse_user_prompt_vo.task, task_uuid, is_log)
 
