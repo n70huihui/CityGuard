@@ -5,10 +5,10 @@ from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
 
-from demo.constants.memory_constants import VEHICLE_SIMPLE_REPORT_KEY
+from demo.constants.memory_constants import VEHICLE_SIMPLE_REPORT_KEY, VEHICLE_FINAL_REPORT_KEY
 from demo.global_settings.memory import long_term_memory
-from demo.llm_io.system_prompts import parse_user_prompt_template
-from demo.llm_io.output_models import ParseUserPromptVo
+from demo.llm_io.system_prompts import parse_user_prompt_template, summary_template
+from demo.llm_io.output_models import ParseUserPromptVo, SummaryVo
 from demo.global_settings.vehicles import vehicle_list
 from demo.vehicle.AgentCard import AgentCard
 from env_utils.llm_args import *
@@ -154,10 +154,44 @@ class CloudSolver:
             if vehicle.car_id in best_vehicle_id_set:
                 vehicle.multi_view_understanding(simple_report_list, task_description, task_uuid, is_log)
 
+    def __summary(self, task_uuid: str, task_description: str, is_log: bool) -> SummaryVo:
+        """
+        总结
+        :param task_uuid: 任务 uuid
+        :param task_description: 任务描述
+        :param is_log: 是否打印日志
+        :return: 最终总结报告
+        """
+
+        # 拿到所有车辆的总结报告
+        summary_list = long_term_memory.get_list(VEHICLE_FINAL_REPORT_KEY.format(task_uuid=task_uuid))
+
+        prompt = summary_template.format(
+            report_list=summary_list,
+            task_description=task_description,
+            task_id=task_uuid
+        )
+
+        # LLM 总结
+        agent = create_agent(
+            model=self.llm,
+            response_format=ToolStrategy(SummaryVo)
+        )
+        response = agent.invoke({"messages": [prompt]})
+
+        if is_log:
+            print(f"summary ===> ")
+            print(f"prompt: {prompt}")
+            print(f"summary_list: {summary_list}")
+            print(f"summary <===")
+            print()
+
+        return response["structured_response"]
+
     def query(self,
               user_prompt: str,
               num_of_vehicles: int = 3,
-              is_log: bool = False) -> str:
+              is_log: bool = False) -> SummaryVo:
         """
         云端下发查询，返回结果报告
         :param num_of_vehicles: 执行任务的车辆数量
@@ -186,3 +220,8 @@ class CloudSolver:
 
         # 5. 多视角理解
         self.__multi_view_understanding(best_vehicle_id_set, task_uuid, task_description, is_log)
+
+        # 6. 总结
+        final_report = self.__summary(task_uuid, task_description, is_log)
+
+        return final_report

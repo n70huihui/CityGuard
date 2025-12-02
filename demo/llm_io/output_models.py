@@ -15,3 +15,10 @@ class HandleObservationVo(BaseModel):
     observation_timestamp: int = Field(description="观测的时间戳")
     result: str = Field(description="结果")
     evidence: str = Field(description="证据")
+
+class SummaryVo(BaseModel):
+    task_id: str = Field(description="本次任务 id")
+    task_description: str = Field(description="任务描述")
+    car_id_list: list[str] = Field(description="提供报告的车辆 id 列表")
+    observation_timestamp_list: list[int] = Field(description="观测的时间戳列表")
+    summary: str = Field(description="总结")
