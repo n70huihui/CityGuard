@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 
 from demo.llm_io.output_models import HandleObservationVo
-from demo.llm_io.system_prompts import handle_observation_template
+from demo.llm_io.system_prompts import handle_observation_template, multi_view_understanding_template
 from env_utils.llm_args import *
 from demo.global_settings.memory import long_term_memory
 from demo.constants.memory_constants import *
@@ -29,10 +29,21 @@ class Vehicle:
         # 车辆内置 LLM Agent
         self.agent = create_agent(
             model=ChatOpenAI(api_key=api_key, base_url=base_url, model=model),
-            tools=[],
+            tools=[self.__get_vehicle_original_observation],
             response_format=ToolStrategy(HandleObservationVo),
             checkpointer=InMemorySaver()    # short-term-memory
         )
+
+    def __get_vehicle_original_observation(self,
+                                           task_id: str,
+                                           car_id: str) -> list:
+        """
+        根据任务 id 和车辆 id 获取车辆的原始观测信息
+        :param task_id: 任务 id
+        :param car_id: 车辆 id
+        :return: 原始观测信息
+        """
+        return long_term_memory.get_list(VEHICLE_OBSERVATION_KEY.format(task_uuid=task_id, car_id=car_id))
 
     def get_agent_card(self) -> str:
         """
@@ -66,7 +77,10 @@ class Vehicle:
 
         return random.choice(observations), int(time.time())
 
-    def __handle_observation(self, observation: str, timestamp: int, task_description: str, task_uuid: str) -> HandleObservationVo:
+    def __handle_observation(self, observation: str,
+                             timestamp: int,
+                             task_description: str,
+                             task_uuid: str) -> HandleObservationVo:
         """
         处理车辆观测信息
         :param observation: 车辆观测信息
@@ -95,6 +109,7 @@ class Vehicle:
         执行任务
         :param task_description: 任务描述
         :param task_uuid: 任务 UUID
+        :param is_log: 是否打印日志
         :return: None
         """
 
@@ -104,13 +119,64 @@ class Vehicle:
         observation, timestamp = self.__get_observation()
         simple_report = self.__handle_observation(observation, timestamp, task_description, task_uuid)
 
+        # 车辆生成完本次的报告后，保存报告到云上
+        # TODO 这里理论上最好还是在本地保存一份自己的报告，不然的话要依靠 agent 的记忆功能，目前的话暂时依靠 agent 的 short-term-memory 来存
+        long_term_memory.rpush(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid), simple_report)
+
         if is_log:
             print(f"execute_task ===> ")
             print(f"car_id: {self.car_id}")
             print(f"observation: {observation}")
             print(f"simple_report: {simple_report}")
+            # print(f"long_term_list_memory: {long_term_memory.list_memory}")
             print(f"execute_task <===")
             print()
 
         self.is_working = False
-        pass
+
+    def multi_view_understanding(self,
+                                 simple_report_list: list[HandleObservationVo],
+                                 task_description: str,
+                                 task_uuid: str,
+                                 is_log: bool) -> None:
+        """
+        多视角理解
+        :param simple_report_list: 简单报告列表
+        :param task_description: 任务描述
+        :param task_uuid: 任务 id
+        :param is_log: 是否打印日志
+        :return: None
+        """
+        self.is_working = True
+
+        # 整理出自己的报告以及别人的报告列表
+        my_report = None
+        other_report_list = []
+        for simple_report in simple_report_list:
+            if simple_report.car_id == self.car_id:
+                my_report = simple_report
+            else:
+                other_report_list.append(simple_report)
+
+        # 车辆修正自己的报告
+        prompt = multi_view_understanding_template.format(
+            simple_report_list=other_report_list,
+            self_report=my_report,
+            task_description=task_description
+        )
+        response = self.agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})
+        final_report = response["structured_response"]
+
+        # 车辆生成完最终的报告后，保存报告到云上
+        long_term_memory.rpush(VEHICLE_FINAL_REPORT_KEY.format(task_uuid=task_uuid), final_report)
+
+        if is_log:
+            print(f"multi_view_understanding ===> ")
+            print(f"car_id: {self.car_id}")
+            print(f"simple_report: {my_report}")
+            print(f"final_report: {final_report}")
+            # print(f"long_term_list_memory: {long_term_memory.list_memory}")
+            print(f"multi_view_understanding <===")
+            print()
+
+        self.is_working = False

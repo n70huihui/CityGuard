@@ -4,6 +4,9 @@ import uuid
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
+
+from demo.constants.memory_constants import VEHICLE_SIMPLE_REPORT_KEY
+from demo.global_settings.memory import long_term_memory
 from demo.llm_io.system_prompts import parse_user_prompt_template
 from demo.llm_io.output_models import ParseUserPromptVo
 from demo.global_settings.vehicles import vehicle_list
@@ -72,7 +75,11 @@ class CloudSolver:
 
         return agent_cards
 
-    def __get_best_best_vehicle_id_list(self, location: tuple[float, float], agent_cards: list[str], num_of_vehicles: int, is_log: bool) -> list[str]:
+    def __get_best_best_vehicle_id_list(self,
+                                        location: tuple[float, float],
+                                        agent_cards: list[str],
+                                        num_of_vehicles: int,
+                                        is_log: bool) -> list[str]:
         """
         挑选最优的车辆执行任务，使用欧式距离 TOP-K
         :param location: 任务地点坐标
@@ -108,27 +115,49 @@ class CloudSolver:
 
         return best_vehicle_id_list
 
-    def __vehicle_execute_task(self, best_vehicle_id_list: list[str], task_description: str, task_uuid: str, is_log: bool) -> None:
+    def __vehicle_execute_task(self,
+                               best_vehicle_id_set: set[str],
+                               task_description: str,
+                               task_uuid: str,
+                               is_log: bool) -> None:
         """
         对应的车辆执行任务，这里直接模拟
-        :param best_vehicle_id_list: 车辆 id 列表
+        :param best_vehicle_id_set: 车辆 id 列表
         :param task_description: 任务描述
         :param task_uuid: 任务 uuid
         :param is_log: 是否打印日志
         :return: None
         """
-
-        # 转 Set 集合，方便查询
-        best_vehicle_id_set = set(best_vehicle_id_list)
-
         # TODO 理论上应该把 id_list 广播给所有车辆，让车辆执行任务，这里直接模拟
         for vehicle in vehicle_list:
             if vehicle.car_id in best_vehicle_id_set:
                 # TODO 这里 for 循环他妈的还是串行的，找个时间改成并行
                 vehicle.execute_task(task_description, task_uuid, is_log)
 
+    def __multi_view_understanding(self,
+                                   best_vehicle_id_set: set[str],
+                                   task_uuid: str,
+                                   task_description: str,
+                                   is_log: bool) -> None:
+        """
+        多视角理解，让每一辆车修正自己的结果
+        :param best_vehicle_id_set: 车辆 id 列表
+        :param task_uuid: 任务 uuid
+        :param task_description: 任务描述
+        :param is_log: 是否打印日志
+        :return: None
+        """
+        simple_report_list = long_term_memory.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
 
-    def query(self, user_prompt: str, num_of_vehicles: int = 3, is_log: bool = False) -> str:
+        # TODO 这里一样也应该广播，目前串行模拟
+        for vehicle in vehicle_list:
+            if vehicle.car_id in best_vehicle_id_set:
+                vehicle.multi_view_understanding(simple_report_list, task_description, task_uuid, is_log)
+
+    def query(self,
+              user_prompt: str,
+              num_of_vehicles: int = 3,
+              is_log: bool = False) -> str:
         """
         云端下发查询，返回结果报告
         :param num_of_vehicles: 执行任务的车辆数量
@@ -150,6 +179,10 @@ class CloudSolver:
         if not best_vehicle_id_list:
             raise Exception("没有找到合适的车辆执行任务")
 
+        best_vehicle_id_set = set(best_vehicle_id_list)
         # 4. 每辆车执行任务
-        self.__vehicle_execute_task(best_vehicle_id_list, parse_user_prompt_vo.task, task_uuid, is_log)
+        task_description = parse_user_prompt_vo.task
+        self.__vehicle_execute_task(best_vehicle_id_set, task_description, task_uuid, is_log)
 
+        # 5. 多视角理解
+        self.__multi_view_understanding(best_vehicle_id_set, task_uuid, task_description, is_log)

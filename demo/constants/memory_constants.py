@@ -3,3 +3,5 @@
 """
 
 VEHICLE_OBSERVATION_KEY = "{task_uuid}:observation:{car_id}"
+VEHICLE_SIMPLE_REPORT_KEY = "{task_uuid}:simple_report"
+VEHICLE_FINAL_REPORT_KEY = "{task_uuid}:final_report"
