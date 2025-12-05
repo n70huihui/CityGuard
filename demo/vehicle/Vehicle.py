@@ -62,9 +62,9 @@ class Vehicle:
 
         return json.dumps(to_dict(), indent=2)
 
-    def __get_observation(self) -> tuple[str, int]:
+    def __get_text_observation(self) -> tuple[str, int]:
         """
-        获取车辆的观测信息
+        获取车辆的观测信息，使用文本模拟
         :return: 观测信息，观测时间
         """
 
@@ -74,7 +74,6 @@ class Vehicle:
             "在本车辆观测中，没有单车违停",
             "在本车辆观测中，路面被其他行人、车辆挡住，看不到什么有效信息"
         ]
-        # TODO 这里到时候接入数据集，使用照片模拟车辆拍摄情况，现在先用文本模拟观测
 
         return random.choice(observations), int(time.time())
 
@@ -117,7 +116,7 @@ class Vehicle:
         # 车辆开始工作，工作中的车辆会被排除
         self.is_working = True
 
-        observation, timestamp = self.__get_observation()
+        observation, timestamp = self.__get_text_observation()
         simple_report = self.__handle_observation(observation, timestamp, task_description, task_uuid)
 
         # 车辆生成完本次的报告后，保存报告到云上

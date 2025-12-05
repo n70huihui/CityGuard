@@ -1,6 +1,7 @@
 import time
 import uuid, json, heapq
 
+from demo.globals.executor import vehicle_executor
 from demo.globals.vehicles import vehicle_list
 from demo.globals.memory import long_term_memory
 from demo.vehicle.AgentCard import AgentCard
@@ -41,19 +42,24 @@ def test_memory():
     print(long_term_memory.get_list("test"))
 
 def test_executor():
-    from demo.vehicle.VehicleExecutor import VehicleExecutor
-    from demo.globals.vehicles import vehicle_list
-
     t1 = time.time()
-    vehicle_executor = VehicleExecutor()
-    vehicle_executor.execute_tasks(vehicle_list)
+    car_id_set: set[str] = set([vehicle.car_id for vehicle in vehicle_list])
+    card_list = vehicle_executor.execute_tasks(
+        car_id_set,
+        'get_agent_card',
+        return_results=True
+    )
     t2 = time.time()
-
-    t11 = time.time()
+    print(card_list)
+    print(t2 - t1)
+    print("===>")
+    t1 = time.time()
+    card_list = []
     for vehicle in vehicle_list:
-        vehicle.exec()
-    t22 = time.time()
-    print(f"执行时间: {t2 - t1}")
-    print(f"执行时间: {t22 - t11}")
+        card = vehicle.get_agent_card()
+        card_list.append(card)
+    t2 = time.time()
+    print(card_list)
+    print(t2 - t1)
 
 test_executor()

@@ -4,8 +4,8 @@ from langchain_core.language_models import BaseChatModel
 
 from demo.constants.memory_constants import VEHICLE_SIMPLE_REPORT_KEY, VEHICLE_FINAL_REPORT_KEY
 from demo.coordinators.AgentCoordinator import AgentCoordinator
+from demo.globals.executor import vehicle_executor
 from demo.globals.memory import long_term_memory
-from demo.globals.vehicles import vehicle_list
 from demo.llm_io.output_models import SummaryVo
 from demo.llm_io.system_prompts import summary_template
 
@@ -27,11 +27,12 @@ class MultiViewByVehicleCoordinator(AgentCoordinator):
         :param is_log: 是否打印日志
         :return: None
         """
-        # TODO 理论上应该把 id_list 广播给所有车辆，让车辆执行任务，这里直接模拟
-        for vehicle in vehicle_list:
-            if vehicle.car_id in best_vehicle_id_set:
-                # TODO 这里 for 循环还是串行的，找个时间改成并行
-                vehicle.execute_task(task_description, task_uuid, is_log)
+        # 线程池并行模拟
+        vehicle_executor.execute_tasks(
+            best_vehicle_id_set=best_vehicle_id_set,
+            method_name='execute_task',
+            args=(task_description, task_uuid, is_log)
+        )
 
     def __multi_view_understanding(self,
                                    best_vehicle_id_set: set[str],
@@ -48,10 +49,12 @@ class MultiViewByVehicleCoordinator(AgentCoordinator):
         """
         simple_report_list = long_term_memory.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
 
-        # TODO 这里一样也应该广播，目前串行模拟
-        for vehicle in vehicle_list:
-            if vehicle.car_id in best_vehicle_id_set:
-                vehicle.multi_view_understanding(simple_report_list, task_description, task_uuid, is_log)
+        # 线程池并行模拟
+        vehicle_executor.execute_tasks(
+            best_vehicle_id_set=best_vehicle_id_set,
+            method_name='multi_view_understanding',
+            args=(simple_report_list, task_description, task_uuid, is_log)
+        )
 
     def __summary(self,
                   llm: BaseChatModel,

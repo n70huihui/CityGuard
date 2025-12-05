@@ -6,6 +6,8 @@ from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
 
 from demo.coordinators.AgentCoordinator import AgentCoordinator
+from demo.coordinators.MultiViewByVehicleCoordinator import MultiViewByVehicleCoordinator
+from demo.globals.executor import vehicle_executor
 from demo.llm_io.system_prompts import parse_user_prompt_template
 from demo.llm_io.output_models import ParseUserPromptVo, SummaryVo
 from demo.globals.vehicles import vehicle_list
@@ -16,7 +18,7 @@ class CloudSolver:
     """
     云端计算
     """
-    def __init__(self, coordinator: AgentCoordinator):
+    def __init__(self, coordinator: AgentCoordinator = MultiViewByVehicleCoordinator()):
         self.llm = ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
         self.coordinator = coordinator  # 多智能体协作执行器，可以切换不同的执行流程
 
@@ -61,10 +63,15 @@ class CloudSolver:
         :param is_log: 是否打印日志
         :return: agent_card 列表
         """
-        agent_cards: list[str] = []
         # TODO 这里的 vehicle_list 实际上需要从模拟器中利用 location 获取附近的车辆，这里直接模拟
-        for vehicle in vehicle_list:
-            agent_cards.append(vehicle.get_agent_card())
+        car_id_set: set[str] = set([vehicle.car_id for vehicle in vehicle_list])
+
+        # 线程池并行处理
+        agent_cards: list[str] = vehicle_executor.execute_tasks(
+            best_vehicle_id_set=car_id_set,
+            method_name='get_agent_card',
+            return_results=True
+        )
 
         if is_log:
             print(f"get_agent_cards ===> ")
