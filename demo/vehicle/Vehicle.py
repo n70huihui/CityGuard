@@ -11,7 +11,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from demo.llm_io.output_models import HandleObservationVo
 from demo.llm_io.system_prompts import handle_observation_template, multi_view_understanding_template
 from env_utils.llm_args import *
-from demo.global_settings.memory import long_term_memory
+from demo.globals.memory import long_term_memory
 from demo.constants.memory_constants import *
 
 class Vehicle:
@@ -25,6 +25,7 @@ class Vehicle:
         self.is_working: bool = False   # TODO 这里的状态是不是要搞多一点，比如说正在执行任务，正在多视角理解等，粒度更细一点？
         self.ability: list[str] = []
         self.speed: float = random.uniform(30, 60)
+        # TODO 车辆朝向
 
         # 车辆内置 LLM Agent
         self.agent = create_agent(

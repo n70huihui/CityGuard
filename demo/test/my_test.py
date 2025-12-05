@@ -1,7 +1,7 @@
 import uuid, json, heapq
 
-from demo.global_settings.vehicles import vehicle_list
-from demo.global_settings.memory import long_term_memory
+from demo.globals.vehicles import vehicle_list
+from demo.globals.memory import long_term_memory
 from demo.vehicle.AgentCard import AgentCard
 
 """

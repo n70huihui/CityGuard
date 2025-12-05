@@ -6,10 +6,10 @@ from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
 
 from demo.constants.memory_constants import VEHICLE_SIMPLE_REPORT_KEY, VEHICLE_FINAL_REPORT_KEY
-from demo.global_settings.memory import long_term_memory
+from demo.globals.memory import long_term_memory
 from demo.llm_io.system_prompts import parse_user_prompt_template, summary_template
 from demo.llm_io.output_models import ParseUserPromptVo, SummaryVo
-from demo.global_settings.vehicles import vehicle_list
+from demo.globals.vehicles import vehicle_list
 from demo.vehicle.AgentCard import AgentCard
 from env_utils.llm_args import *
 
@@ -131,7 +131,7 @@ class CloudSolver:
         # TODO 理论上应该把 id_list 广播给所有车辆，让车辆执行任务，这里直接模拟
         for vehicle in vehicle_list:
             if vehicle.car_id in best_vehicle_id_set:
-                # TODO 这里 for 循环他妈的还是串行的，找个时间改成并行
+                # TODO 这里 for 循环还是串行的，找个时间改成并行
                 vehicle.execute_task(task_description, task_uuid, is_log)
 
     def __multi_view_understanding(self,
@@ -219,6 +219,7 @@ class CloudSolver:
         self.__vehicle_execute_task(best_vehicle_id_set, task_description, task_uuid, is_log)
 
         # 5. 多视角理解
+        # TODO 流程修改，可能需要多个回合
         self.__multi_view_understanding(best_vehicle_id_set, task_uuid, task_description, is_log)
 
         # 6. 总结
