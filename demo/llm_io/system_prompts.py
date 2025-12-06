@@ -11,7 +11,12 @@ parse_user_prompt_template = HumanMessagePromptTemplate.from_template("""
 可以调用工具来根据位置返回对应经纬度。
 """)
 
-handle_observation_template = HumanMessagePromptTemplate.from_template("""
+handle_image_observation_template = HumanMessagePromptTemplate.from_template("""
+现有车辆观测图片，请你根据本次的任务：{task_description}，把图片内容总结成文本。
+注意，仅总结和任务相关的信息。最终回复的文本不要包含 Markdown 形式，仅文字内容即可。
+""")
+
+handle_text_observation_template = HumanMessagePromptTemplate.from_template("""
 现有车辆观测信息: {observation}，请你根据本次的任务：{task_description}，总结出本次的观测结果以及对应的证据，形成报告。
 此外，本次观测的其他额外信息: 任务 id: {task_id}, 车辆 id: {car_id}, 观测时间: {observation_timestamp} 也一并纳入报告中。
 """)

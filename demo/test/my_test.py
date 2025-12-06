@@ -1,3 +1,4 @@
+import os
 import time
 import uuid, json, heapq
 
@@ -62,4 +63,18 @@ def test_executor():
     print(card_list)
     print(t2 - t1)
 
-test_executor()
+def test_file_read():
+    # 获取当前脚本所在目录的绝对路径
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 获取项目根路径（CityGuard 层级）
+    project_root = os.path.dirname(os.path.dirname(current_script_dir))  # 向上两级
+
+    # 拼接自定义文件夹路径
+    custom_folder = os.path.join(project_root, "your_folder_name", "abc")
+
+    print(f"当前脚本路径: {current_script_dir}")
+    print(f"项目根路径: {project_root}")
+    print(f"自定义文件夹路径: {custom_folder}")
+
+test_file_read()

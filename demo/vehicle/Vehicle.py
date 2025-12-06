@@ -97,7 +97,7 @@ class Vehicle:
         if is_log:
             print(f"execute_task ===> ")
             print(f"car_id: {self.car_id}")
-            print(f"observation: {observation}")
+            # print(f"observation: {observation}")
             print(f"simple_report: {simple_report}")
             # print(f"long_term_list_memory: {long_term_memory.list_memory}")
             print(f"execute_task <===")

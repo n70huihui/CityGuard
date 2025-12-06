@@ -1,15 +1,58 @@
+import base64
+import os
+import random
+import time
+
+from langchain_core.messages import HumanMessage
 from langgraph.graph.state import CompiledStateGraph
 
+from demo.constants.memory_constants import VEHICLE_OBSERVATION_KEY
+from demo.globals.memory import long_term_memory
 from demo.llm_io.output_models import HandleObservationVo
+from demo.llm_io.system_prompts import handle_text_observation_template, handle_image_observation_template
 from demo.observations.ObservationHandler import ObservationHandler
+
 
 class ImageObservationHandler(ObservationHandler):
     """
     图片观测处理器，使用图片模拟观测数据
     """
-    def get_observation(self) -> tuple[str | list[str] | dict[str, object], int]:
 
-        pass
+    def __image_to_base64(self, image_filename: str) -> str:
+        """
+        将图片转换为 base64 编码
+        :param image_filename: 图片文件名
+        :return: base64 编码
+        """
+        # 获取当前脚本所在目录的绝对路径
+        current_script_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # 向上两级获取项目根路径（CityGuard 层级）
+        project_root = os.path.dirname(os.path.dirname(current_script_dir))
+
+        # 拼接自定义文件夹路径
+        custom_folder = os.path.join(project_root, "datasets", "garbage", image_filename)
+
+        if not os.path.exists(custom_folder):
+            raise FileNotFoundError(f"图片文件不存在: {custom_folder}")
+
+        with open(custom_folder, "rb") as image_file:
+            base64_str = base64.b64encode(image_file.read()).decode("utf-8")
+            return base64_str
+
+    def get_observation(self) -> tuple[str | list[str] | dict[str, object], int]:
+        # TODO 这里暂时只在一个子文件夹里随机读取图片，后续需要改为从大文件夹或者对象存储桶里读取图片
+        observations: list[str] = [
+            'garbage_1.jpg',
+            'garbage_2.jpg',
+            'garbage_3.jpg',
+            'garbage_4.jpg',
+            'garbage_5.jpg'
+        ]
+        choice = random.choice(observations)
+        print(choice)
+        base64_str = self.__image_to_base64(choice)
+        return base64_str, int(time.time())
 
     def handle_observation(self,
                            text_agent: CompiledStateGraph,
@@ -19,4 +62,35 @@ class ImageObservationHandler(ObservationHandler):
                            task_description: str,
                            task_uuid: str, car_id: str
                            ) -> HandleObservationVo:
-        pass
+        # 视觉模型处理 base64 图片
+        visual_prompt = handle_image_observation_template.format(
+            task_description=task_description
+        )
+
+        inputs = {"messages": [HumanMessage(content=[
+            {"type": "text", "text": visual_prompt.content},
+            {
+                "type": "image",
+                "source_type": "base64",
+                "data": observation,
+                "mime_type": "image/jpeg"
+            }
+        ])]}
+
+        outputs = visual_agent.invoke(inputs)
+        text_observation = outputs["messages"][-1].content_blocks
+
+        # 这里存放的是识别后内容
+        # TODO 其实最好还是存图片原样
+        long_term_memory.rpush(VEHICLE_OBSERVATION_KEY.format(task_uuid=task_uuid, car_id=car_id), text_observation)
+
+        # 提供车辆报告
+        prompt = handle_text_observation_template.format(
+            observation=text_observation,
+            task_description=task_description,
+            task_id=task_uuid,
+            car_id=car_id,
+            observation_timestamp=timestamp
+        )
+        response = text_agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})
+        return response["structured_response"]

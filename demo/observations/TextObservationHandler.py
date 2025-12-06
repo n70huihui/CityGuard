@@ -6,7 +6,7 @@ from langgraph.graph.state import CompiledStateGraph
 from demo.constants.memory_constants import VEHICLE_OBSERVATION_KEY
 from demo.globals.memory import long_term_memory
 from demo.llm_io.output_models import HandleObservationVo
-from demo.llm_io.system_prompts import handle_observation_template
+from demo.llm_io.system_prompts import handle_text_observation_template
 from demo.observations.ObservationHandler import ObservationHandler
 
 class TextObservationHandler(ObservationHandler):
@@ -34,7 +34,7 @@ class TextObservationHandler(ObservationHandler):
         long_term_memory.rpush(VEHICLE_OBSERVATION_KEY.format(task_uuid=task_uuid, car_id=car_id), observation)
 
         # 提供车辆报告
-        prompt = handle_observation_template.format(
+        prompt = handle_text_observation_template.format(
             observation=observation,
             task_description=task_description,
             task_id=task_uuid,
