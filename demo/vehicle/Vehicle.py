@@ -1,7 +1,4 @@
-import json
-import random
-import time
-import uuid
+import json, random, uuid
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
@@ -9,7 +6,9 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 
 from demo.llm_io.output_models import HandleObservationVo
-from demo.llm_io.system_prompts import handle_observation_template, multi_view_understanding_template
+from demo.llm_io.system_prompts import multi_view_understanding_template
+from demo.observations.ObservationHandler import ObservationHandler
+from demo.observations.TextObservationHandler import TextObservationHandler
 from env_utils.llm_args import *
 from demo.globals.memory import long_term_memory
 from demo.constants.memory_constants import *
@@ -18,13 +17,14 @@ class Vehicle:
     """
     车辆类，用于模拟车辆，每一辆车内置 Agent
     """
-    def __init__(self):
+    def __init__(self, observation_handler: ObservationHandler = TextObservationHandler()):
         # 车辆属性赋值
         self.car_id: str = uuid.uuid4().__str__()
         self.location: tuple[float, float] = (random.uniform(-90, 90), random.uniform(-180, 180))
         self.is_working: bool = False   # TODO 这里的状态是不是要搞多一点，比如说正在执行任务，正在多视角理解等，粒度更细一点？
         self.ability: list[str] = []
         self.speed: float = random.uniform(30, 60)
+        self.observation_handler = observation_handler  # 车辆观测处理器
         # TODO 车辆朝向
 
         # 车辆内置 LLM Agent
@@ -62,48 +62,6 @@ class Vehicle:
 
         return json.dumps(to_dict(), indent=2)
 
-    def __get_text_observation(self) -> tuple[str, int]:
-        """
-        获取车辆的观测信息，使用文本模拟
-        :return: 观测信息，观测时间
-        """
-
-        observations: list[str] = [
-            "在本车辆观测中，阜埠河路东侧有两辆单车违停",
-            "在本车辆观测中，阜埠河路西侧有三辆单车违停，另外还有两辆单车停得东倒西歪",
-            "在本车辆观测中，没有单车违停",
-            "在本车辆观测中，路面被其他行人、车辆挡住，看不到什么有效信息"
-        ]
-
-        return random.choice(observations), int(time.time())
-
-    def __handle_observation(self, observation: str,
-                             timestamp: int,
-                             task_description: str,
-                             task_uuid: str) -> HandleObservationVo:
-        """
-        处理车辆观测信息
-        :param observation: 车辆观测信息
-        :param timestamp: 观测时间
-        :param task_description: 任务描述
-        :param task_uuid: 任务 UUID
-        :return:
-        """
-
-        # TODO 这里如果是视频，应该先抽取关键帧，然后存关键帧上去
-        long_term_memory.rpush(VEHICLE_OBSERVATION_KEY.format(task_uuid=task_uuid, car_id=self.car_id), observation)
-
-        # 提供车辆报告
-        prompt = handle_observation_template.format(
-            observation=observation,
-            task_description=task_description,
-            task_id=task_uuid,
-            car_id=self.car_id,
-            observation_timestamp=timestamp
-        )
-        response = self.agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})
-        return response["structured_response"]
-
     def execute_task(self, task_description: str, task_uuid: str, is_log: bool) -> None:
         """
         执行任务
@@ -116,8 +74,16 @@ class Vehicle:
         # 车辆开始工作，工作中的车辆会被排除
         self.is_working = True
 
-        observation, timestamp = self.__get_text_observation()
-        simple_report = self.__handle_observation(observation, timestamp, task_description, task_uuid)
+        # 调用观测处理器处理观测
+        observation, timestamp = self.observation_handler.get_observation()
+        simple_report = self.observation_handler.handle_observation(
+            agent=self.agent,
+            observation=observation,
+            timestamp=timestamp,
+            task_description=task_description,
+            task_uuid=task_uuid,
+            car_id=self.car_id
+        )
 
         # 车辆生成完本次的报告后，保存报告到云上
         # TODO 这里理论上最好还是在本地保存一份自己的报告，不然的话要依靠 agent 的记忆功能，目前的话暂时依靠 agent 的 short-term-memory 来存
