@@ -23,7 +23,8 @@ class TextObservationHandler(ObservationHandler):
         return random.choice(observations), int(time.time())
 
     def handle_observation(self,
-                           agent: CompiledStateGraph,
+                           text_agent: CompiledStateGraph,
+                           visual_agent: CompiledStateGraph,
                            observation: str | list[str] | dict[str, object],
                            timestamp: int,
                            task_description: str,
@@ -40,5 +41,5 @@ class TextObservationHandler(ObservationHandler):
             car_id=car_id,
             observation_timestamp=timestamp
         )
-        response = agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})
+        response = text_agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})
         return response["structured_response"]

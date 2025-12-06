@@ -27,12 +27,16 @@ class Vehicle:
         self.observation_handler = observation_handler  # 车辆观测处理器
         # TODO 车辆朝向
 
-        # 车辆内置 LLM Agent
-        self.agent = create_agent(
+        # 车辆内置 Agent，分有文本和视觉两个
+        self.text_agent = create_agent(
             model=ChatOpenAI(api_key=api_key, base_url=base_url, model=model),
             tools=[self.__get_vehicle_original_observation],
             response_format=ToolStrategy(HandleObservationVo),
-            checkpointer=InMemorySaver()    # short-term-memory
+            checkpointer=InMemorySaver()  # short-term-memory
+        )
+        self.visual_agent = create_agent(
+            model=ChatOpenAI(api_key=api_key, base_url=base_url, model=visual_model),
+            tools=[]
         )
 
     def __get_vehicle_original_observation(self,
@@ -77,7 +81,8 @@ class Vehicle:
         # 调用观测处理器处理观测
         observation, timestamp = self.observation_handler.get_observation()
         simple_report = self.observation_handler.handle_observation(
-            agent=self.agent,
+            text_agent=self.text_agent,
+            visual_agent=self.visual_agent,
             observation=observation,
             timestamp=timestamp,
             task_description=task_description,
@@ -130,7 +135,7 @@ class Vehicle:
             self_report=my_report,
             task_description=task_description
         )
-        response = self.agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})
+        response = self.text_agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})
         final_report = response["structured_response"]
 
         # 车辆生成完最终的报告后，保存报告到云上
