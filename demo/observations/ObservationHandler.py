@@ -22,9 +22,11 @@ class ObservationHandler(ABC):
                            visual_agent: CompiledStateGraph,
                            observation: str | list[str] | dict[str, object],
                            timestamp: int,
+                           task_location: str,
                            task_description: str,
                            task_uuid: str,
-                           car_id: str
+                           car_id: str,
+                           car_direction: float
                            ) -> HandleObservationVo:
         """
         处理观测数据，返回处理结果
@@ -32,9 +34,11 @@ class ObservationHandler(ABC):
         :param visual_agent: 视觉 agent
         :param observation: 观测数据
         :param timestamp: 观测时间
+        :param task_location: 任务地点
         :param task_description: 任务描述
         :param task_uuid: 任务 id
         :param car_id: 车辆 id
+        :param car_direction: 车辆方向
         :return: 处理结果报告
         """
         pass

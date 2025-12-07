@@ -10,3 +10,4 @@ class AgentCard:
     is_working: bool
     ability: list[str]
     speed: float
+    direction: float

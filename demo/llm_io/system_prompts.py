@@ -7,7 +7,7 @@ from langchain_core.prompts import SystemMessagePromptTemplate, HumanMessageProm
 
 parse_user_prompt_template = HumanMessagePromptTemplate.from_template("""
 用户输入为: {user_input}
-你需要把用户输入解析成位置经纬度，以及任务信息
+你需要把用户输入解析成位置地点，位置经纬度，以及任务信息
 可以调用工具来根据位置返回对应经纬度。
 """)
 
@@ -17,8 +17,9 @@ handle_image_observation_template = HumanMessagePromptTemplate.from_template("""
 """)
 
 handle_text_observation_template = HumanMessagePromptTemplate.from_template("""
-现有车辆观测信息: {observation}，请你根据本次的任务：{task_description}，总结出本次的观测结果以及对应的证据，形成报告。
-此外，本次观测的其他额外信息: 任务 id: {task_id}, 车辆 id: {car_id}, 观测时间: {observation_timestamp} 也一并纳入报告中。
+现有车辆在任务路段位置: {task_location} 的观测信息: {observation}，请你根据本次的任务：{task_description}，总结出本次的观测结果以及对应的证据，形成报告。
+此外，本次观测的其他额外信息: 任务 id: {task_id}, 车辆 id: {car_id}, 车辆朝向: {car_direction}, 观测时间: {observation_timestamp} 也一并纳入报告中。
+在报告的总结中，请着重强调车辆的朝向以及对应的路段，可以把对应的 0-360 的角度转换为东南西北等方向来描述。
 """)
 
 multi_view_understanding_template = HumanMessagePromptTemplate.from_template("""
@@ -33,5 +34,5 @@ multi_view_understanding_template = HumanMessagePromptTemplate.from_template("""
 
 summary_template = HumanMessagePromptTemplate.from_template("""
 现有所有的车辆报告信息: {report_list}，以及本次任务的任务描述: {task_description}，任务 id: {task_id}。
-请你总结本次任务的结果，并返回总结。
+请你总结本次任务的结果，并返回总结。在总结中需要注明路段信息，以及对应位置的情况。
 """)

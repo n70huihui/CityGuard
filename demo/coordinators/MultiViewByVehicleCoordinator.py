@@ -16,12 +16,14 @@ class MultiViewByVehicleCoordinator(AgentCoordinator):
     """
     def __vehicle_execute_task(self,
                                best_vehicle_id_set: set[str],
+                               task_location: str,
                                task_description: str,
                                task_uuid: str,
                                is_log: bool) -> None:
         """
         对应的车辆执行任务，这里直接模拟
         :param best_vehicle_id_set: 车辆 id 列表
+        :param task_location: 任务地点
         :param task_description: 任务描述
         :param task_uuid: 任务 uuid
         :param is_log: 是否打印日志
@@ -31,7 +33,7 @@ class MultiViewByVehicleCoordinator(AgentCoordinator):
         vehicle_executor.execute_tasks(
             best_vehicle_id_set=best_vehicle_id_set,
             method_name='execute_task',
-            args=(task_description, task_uuid, is_log)
+            args=(task_location, task_description, task_uuid, is_log)
         )
 
     def __multi_view_understanding(self,
@@ -98,10 +100,11 @@ class MultiViewByVehicleCoordinator(AgentCoordinator):
                             best_vehicle_id_set: set[str],
                             task_uuid: str,
                             task_description: str,
+                            task_location: str,
                             llm: BaseChatModel,
                             is_log: bool) -> SummaryVo:
         # 1. 每辆车执行任务
-        self.__vehicle_execute_task(best_vehicle_id_set, task_description, task_uuid, is_log)
+        self.__vehicle_execute_task(best_vehicle_id_set, task_location, task_description, task_uuid, is_log)
 
         # 2. 多视角理解
         self.__multi_view_understanding(best_vehicle_id_set, task_uuid, task_description, is_log)

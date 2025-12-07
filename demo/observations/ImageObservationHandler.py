@@ -59,8 +59,11 @@ class ImageObservationHandler(ObservationHandler):
                            visual_agent: CompiledStateGraph,
                            observation: str | list[str] | dict[str, object],
                            timestamp: int,
+                           task_location: str,
                            task_description: str,
-                           task_uuid: str, car_id: str
+                           task_uuid: str,
+                           car_id: str,
+                           car_direction: float
                            ) -> HandleObservationVo:
         # 视觉模型处理 base64 图片
         visual_prompt = handle_image_observation_template.format(
@@ -87,9 +90,11 @@ class ImageObservationHandler(ObservationHandler):
         # 提供车辆报告
         prompt = handle_text_observation_template.format(
             observation=text_observation,
+            task_location=task_location,
             task_description=task_description,
             task_id=task_uuid,
             car_id=car_id,
+            car_direction=car_direction,
             observation_timestamp=timestamp
         )
         response = text_agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})

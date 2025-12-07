@@ -27,18 +27,22 @@ class TextObservationHandler(ObservationHandler):
                            visual_agent: CompiledStateGraph,
                            observation: str | list[str] | dict[str, object],
                            timestamp: int,
+                           task_location: str,
                            task_description: str,
                            task_uuid: str,
-                           car_id: str
+                           car_id: str,
+                           car_direction: float
                            ) -> HandleObservationVo:
         long_term_memory.rpush(VEHICLE_OBSERVATION_KEY.format(task_uuid=task_uuid, car_id=car_id), observation)
 
         # 提供车辆报告
         prompt = handle_text_observation_template.format(
             observation=observation,
+            task_location=task_location,
             task_description=task_description,
             task_id=task_uuid,
             car_id=car_id,
+            car_direction=car_direction,
             observation_timestamp=timestamp
         )
         response = text_agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})

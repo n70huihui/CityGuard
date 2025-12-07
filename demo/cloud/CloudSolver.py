@@ -153,6 +153,7 @@ class CloudSolver:
         final_report = self.coordinator.multi_agent_execute(
             best_vehicle_id_set,
             task_uuid,
+            parse_user_prompt_vo.task_location,
             task_description,
             self.llm,
             is_log

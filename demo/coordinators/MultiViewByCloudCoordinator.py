@@ -11,6 +11,7 @@ class MultiViewByCloudCoordinator(AgentCoordinator):
                             best_vehicle_id_set: set[str],
                             task_uuid: str,
                             task_description: str,
+                            task_location: str,
                             llm: BaseChatModel,
                             is_log: bool) -> SummaryVo:
         pass

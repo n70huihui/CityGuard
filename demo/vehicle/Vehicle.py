@@ -24,8 +24,8 @@ class Vehicle:
         self.is_working: bool = False   # TODO 这里的状态是不是要搞多一点，比如说正在执行任务，正在多视角理解等，粒度更细一点？
         self.ability: list[str] = []
         self.speed: float = random.uniform(30, 60)
+        self.direction: float = random.uniform(0, 360)
         self.observation_handler = observation_handler  # 车辆观测处理器
-        # TODO 车辆朝向
 
         # 车辆内置 Agent，分有文本和视觉两个
         self.text_agent = create_agent(
@@ -61,15 +61,22 @@ class Vehicle:
                 "location": self.location,
                 "is_working": self.is_working,
                 "ability": self.ability,
-                "speed": self.speed
+                "speed": self.speed,
+                "direction": self.direction
             }
 
         return json.dumps(to_dict(), indent=2)
 
-    def execute_task(self, task_description: str, task_uuid: str, is_log: bool) -> None:
+    def execute_task(self,
+                     task_location: str,
+                     task_description: str,
+                     task_uuid: str,
+                     is_log: bool
+                     ) -> None:
         """
         执行任务
         :param task_description: 任务描述
+        :param task_location: 任务地点
         :param task_uuid: 任务 UUID
         :param is_log: 是否打印日志
         :return: None
@@ -85,9 +92,11 @@ class Vehicle:
             visual_agent=self.visual_agent,
             observation=observation,
             timestamp=timestamp,
+            task_location=task_location,
             task_description=task_description,
             task_uuid=task_uuid,
-            car_id=self.car_id
+            car_id=self.car_id,
+            car_direction=self.direction
         )
 
         # 车辆生成完本次的报告后，保存报告到云上
