@@ -35,3 +35,9 @@ summary_template = HumanMessagePromptTemplate.from_template("""
 现有所有的车辆报告信息: {report_list}，以及本次任务的任务描述: {task_description}，任务 id: {task_id}。
 请你总结本次任务的结果，并返回总结。在总结中需要注明路段信息，以及对应位置的情况。
 """)
+
+multi_view_understanding_summary_template = HumanMessagePromptTemplate.from_template("""
+现有车辆报告信息: {simple_report_list}。任务 id: {task_id}。
+请你根据本次的任务：{task_description}，参考这些车辆的报告，进行多视角理解。例如：车辆 A、C 的报告显示路段东侧有违停情况，B 显示路段东侧看不到任何信息，那么你应该参考 A、C 的报告，B 的就不需要关注了。
+返回最终的报告。在总结中需要注明路段信息，以及对应位置的情况。
+""")

@@ -64,10 +64,6 @@ class ImageObservationHandler(ObservationHandler):
                            car_id: str,
                            car_direction: float
                            ) -> HandleObservationVo:
-        # 这里存放的是识别后内容
-        # TODO 其实最好还是存图片原样
-        long_term_memory.rpush(VEHICLE_OBSERVATION_KEY.format(task_uuid=task_uuid, car_id=car_id), observation)
-
         # 提供车辆报告
         prompt = handle_text_observation_template.format(
             task_location=task_location,
