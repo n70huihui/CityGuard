@@ -18,8 +18,7 @@ class ObservationHandler(ABC):
 
     @abstractmethod
     def handle_observation(self,
-                           text_agent: CompiledStateGraph,
-                           visual_agent: CompiledStateGraph,
+                           agent: CompiledStateGraph,
                            observation: str | list[str] | dict[str, object],
                            timestamp: int,
                            task_location: str,
@@ -30,8 +29,7 @@ class ObservationHandler(ABC):
                            ) -> HandleObservationVo:
         """
         处理观测数据，返回处理结果
-        :param text_agent: 文本 agent
-        :param visual_agent: 视觉 agent
+        :param agent: agent
         :param observation: 观测数据
         :param timestamp: 观测时间
         :param task_location: 任务地点

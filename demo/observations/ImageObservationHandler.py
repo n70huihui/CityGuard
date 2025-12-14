@@ -55,8 +55,7 @@ class ImageObservationHandler(ObservationHandler):
         return base64_str, int(time.time())
 
     def handle_observation(self,
-                           text_agent: CompiledStateGraph,
-                           visual_agent: CompiledStateGraph,
+                           agent: CompiledStateGraph,
                            observation: str | list[str] | dict[str, object],
                            timestamp: int,
                            task_location: str,
@@ -65,13 +64,22 @@ class ImageObservationHandler(ObservationHandler):
                            car_id: str,
                            car_direction: float
                            ) -> HandleObservationVo:
-        # 视觉模型处理 base64 图片
-        visual_prompt = handle_image_observation_template.format(
-            task_description=task_description
+        # 这里存放的是识别后内容
+        # TODO 其实最好还是存图片原样
+        long_term_memory.rpush(VEHICLE_OBSERVATION_KEY.format(task_uuid=task_uuid, car_id=car_id), observation)
+
+        # 提供车辆报告
+        prompt = handle_text_observation_template.format(
+            task_location=task_location,
+            task_description=task_description,
+            task_id=task_uuid,
+            car_id=car_id,
+            car_direction=car_direction,
+            observation_timestamp=timestamp
         )
 
         inputs = {"messages": [HumanMessage(content=[
-            {"type": "text", "text": visual_prompt.content},
+            {"type": "text", "text": prompt.content},
             {
                 "type": "image",
                 "source_type": "base64",
@@ -80,22 +88,5 @@ class ImageObservationHandler(ObservationHandler):
             }
         ])]}
 
-        outputs = visual_agent.invoke(inputs)
-        text_observation = outputs["messages"][-1].content_blocks
-
-        # 这里存放的是识别后内容
-        # TODO 其实最好还是存图片原样
-        long_term_memory.rpush(VEHICLE_OBSERVATION_KEY.format(task_uuid=task_uuid, car_id=car_id), text_observation)
-
-        # 提供车辆报告
-        prompt = handle_text_observation_template.format(
-            observation=text_observation,
-            task_location=task_location,
-            task_description=task_description,
-            task_id=task_uuid,
-            car_id=car_id,
-            car_direction=car_direction,
-            observation_timestamp=timestamp
-        )
-        response = text_agent.invoke({"messages": [prompt]}, {"configurable": {"thread_id": task_uuid}})
+        response = agent.invoke(inputs, {"configurable": {"thread_id": task_uuid}})
         return response["structured_response"]
