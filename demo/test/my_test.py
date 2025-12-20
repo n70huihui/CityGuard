@@ -1,3 +1,4 @@
+import base64
 import os
 import time
 import uuid, json, heapq
@@ -77,4 +78,41 @@ def test_file_read():
     print(f"项目根路径: {project_root}")
     print(f"自定义文件夹路径: {custom_folder}")
 
-test_file_read()
+def test_image_to_base64(file_name):
+    # 获取当前脚本所在目录的绝对路径
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # 向上两级获取项目根路径（CityGuard 层级）
+    project_root = os.path.dirname(os.path.dirname(current_script_dir))
+
+    # 拼接目标目录路径
+    target_dir = os.path.join(project_root, "datasets", "garbage", file_name)
+
+    if not os.path.exists(target_dir):
+        raise FileNotFoundError(f"目录不存在: {target_dir}")
+
+    # 支持的图片扩展名
+    image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".gif"}
+    base64_list = []
+
+    # 遍历目录下的所有文件
+    for filename in os.listdir(target_dir):
+        file_path = os.path.join(target_dir, filename)
+
+        # 检查是否为文件且是图片
+        if os.path.isfile(file_path) and os.path.splitext(filename)[1].lower() in image_extensions:
+            try:
+                with open(file_path, "rb") as image_file:
+                    base64_str = base64.b64encode(image_file.read()).decode("utf-8")
+                    base64_list.append(base64_str)
+            except Exception as e:
+                print(f"处理图片 {filename} 失败: {str(e)}")
+
+    if not base64_list:
+        raise ValueError(f"目录 {target_dir} 下未找到有效的图片文件")
+
+    return base64_list
+
+if __name__ == '__main__':
+    lst = test_image_to_base64("car3")
+    print(lst)

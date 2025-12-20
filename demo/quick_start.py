@@ -6,6 +6,6 @@ solver = CloudSolver(coordinator=MultiViewByCloudCoordinator())
 
 # 云端下发查询
 # user_prompt = "请帮我查询长沙市岳麓区阜埠河路附近的单车违停情况"
-user_prompt = "请帮我查询长沙市岳麓区阜埠河路附近的垃圾违规堆放情况"
+user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近存在较大异味，请查询根因"
 report = solver.query(user_prompt, is_log=True)
 print(report)
