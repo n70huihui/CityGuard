@@ -22,18 +22,9 @@ def get_project_root() -> Any:
     project_root = os.path.dirname(os.path.dirname(current_script_dir))
     return project_root
 
+def file_image_to_base64(dataset_path, type_name: str, file_id: str, file_name: str) -> list[str]:
 
-def single_file_image_to_base64(type_name: str, file_name: str) -> list[str]:
-    """
-    将单个文件夹中的图片转换为 base64 编码
-    :param type_name: 图片类型名称
-    :param file_name: 图片文件名
-    :return: base64 编码
-    """
-    project_root = get_project_root()
-
-    # 拼接目标目录路径
-    target_dir = os.path.join(project_root, "datasets", type_name, "1", file_name)
+    target_dir = os.path.join(dataset_path, type_name, file_id, file_name)
 
     if not os.path.exists(target_dir):
         raise FileNotFoundError(f"目录不存在: {target_dir}")
@@ -60,15 +51,28 @@ def single_file_image_to_base64(type_name: str, file_name: str) -> list[str]:
 
     return base64_list
 
+def single_file_image_to_base64(file_name: str) -> list[str]:
+    """
+    将单个文件夹中的图片转换为 base64 编码
+    :param file_name: 图片文件名
+    :return: base64 编码
+    """
+    project_root = get_project_root()
+
+    # 拼接目标目录路径
+    dataset_dir = os.path.join(project_root, "datasets")
+
+    return file_image_to_base64(dataset_dir, "garbage", "1", file_name)
 
 class BaseObservationHandler(ABC):
     """
     观测处理器抽象类，用来处理观测数据
     """
     @abstractmethod
-    def get_observation(self) -> tuple[str | list[str] | dict[str, object], int]:
+    def get_observation(self, *args) -> tuple[str | list[str] | dict[str, object], int]:
         """
         获取观测数据，返回观测数据和观测时间
+        :param: *args: 可变参数，用于传递额外的参数
         :return: 观测数据和观测时间
         """
         pass
@@ -98,17 +102,72 @@ class BaseObservationHandler(ABC):
         """
         pass
 
-class SimpleImageObservationHandler(BaseObservationHandler):
+class ImageObservationHandler(BaseObservationHandler):
     """
-    建议图像观测处理器，只处理一个栏目的内容
+    图像观测处理器，处理多个栏目的内容
     """
-    def get_observation(self) -> tuple[str | list[str] | dict[str, object], int]:
+    def get_observation(self, *args) -> tuple[str | list[str] | dict[str, object], int]:
         cars: list[str] = ['car1', 'car2', 'car3', 'car4']
 
         choice = random.choice(cars)
         print(choice)
 
-        base64_lst = single_file_image_to_base64("garbage", choice)
+        base64_lst = file_image_to_base64(args[0], args[1], args[2], choice)
+
+        return base64_lst, int(time.time())
+
+    def handle_observation(self,
+                           agent: CompiledStateGraph,
+                           observation: str | list[str] | dict[str, object],
+                           timestamp: int,
+                           task_location: str,
+                           task_description: str,
+                           task_uuid: str,
+                           car_id: str,
+                           car_direction: float
+                           ) -> HandleObservationVo:
+        # 提供车辆报告
+        prompt = handle_text_observation_template.format(
+            task_location=task_location,
+            task_description=task_description,
+            task_id=task_uuid,
+            car_id=car_id,
+            car_direction=car_direction,
+            observation_timestamp=timestamp
+        )
+
+        # 初始化消息正文
+        message_content = [
+            {"type": "text", "text": prompt.content}
+        ]
+
+        # 插入图片消息
+        for observation_item in observation:
+            message_content.append({
+                "type": "image",
+                "source_type": "base64",
+                "data": observation_item,
+                "mime_type": "image/jpeg"
+            })
+
+        inputs = {"messages": [HumanMessage(content=message_content)]}
+
+        response = agent.invoke(inputs, {"configurable": {"thread_id": task_uuid}})
+
+        return response["structured_response"]
+
+
+class SimpleImageObservationHandler(BaseObservationHandler):
+    """
+    建议图像观测处理器，只处理一个栏目的内容
+    """
+    def get_observation(self, *args) -> tuple[str | list[str] | dict[str, object], int]:
+        cars: list[str] = ['car1', 'car2', 'car3', 'car4']
+
+        choice = random.choice(cars)
+        print(choice)
+
+        base64_lst = single_file_image_to_base64(choice)
 
         return base64_lst, int(time.time())
 

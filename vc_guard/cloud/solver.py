@@ -68,6 +68,7 @@ class CloudSolver:
 
         # 线程池并行处理
         agent_cards: list[str] = vehicle_executor.execute_tasks(
+            vehicle_list=vehicles,
             best_vehicle_id_set=car_id_set,
             method_name='get_agent_card',
             return_results=True
@@ -152,6 +153,7 @@ class CloudSolver:
 
         # 4. 执行任务，线程池并行模拟
         vehicle_executor.execute_tasks(
+            vehicle_list=vehicles,
             best_vehicle_id_set=best_vehicle_id_set,
             method_name='execute_task',
             args=(parse_user_prompt_vo.location, task_description, task_uuid, is_log)
