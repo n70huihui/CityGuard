@@ -191,9 +191,10 @@ class BatchExperimentExecutor:
 
         return final_report.summary
 
-    def run_experiment(self) -> None:
+    def run_experiment(self, start_idx: int) -> None:
         """
         运行实验
+        :param start_idx: 起始索引
         """
         # 创建车辆列表
         experiment_vehicles = [ExperimentVehicle() for _ in range(self.num_vehicles)]
@@ -218,7 +219,7 @@ class BatchExperimentExecutor:
         self._int_csv()
 
         # TODO 先串行执行所有任务
-        for i in range(1, total_cnt + 1):
+        for i in range(start_idx, total_cnt + 1):
 
             task_uuid = "task-" + str(uuid.uuid4()).replace("-", "")
 
@@ -248,4 +249,4 @@ if __name__ == "__main__":
     num_vehicles = 3
 
     executor = BatchExperimentExecutor(user_prompt, output_csv, type_name, num_vehicles)
-    executor.run_experiment()
+    executor.run_experiment(start_idx=1)
