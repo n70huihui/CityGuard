@@ -99,7 +99,7 @@ class BatchExperimentExecutor:
         获取 csv 文件表头
         :return: 获取 csv 文件表头
         """
-        return ["task_id", "type_name", "file_id", "summary"]
+        return ["type_name", "file_id", "summary"]
 
     def _int_csv(self) -> None:
         """
@@ -212,13 +212,13 @@ class BatchExperimentExecutor:
 
         # 获取整批次的数量
         total_cnt = self._count_subdirectories(dataset_path)
-        print(total_cnt)
+        # print(total_cnt)
 
         # 初始化 csv 文件
         self._int_csv()
 
         # TODO 先串行执行所有任务
-        for i in range(1, 3):
+        for i in range(1, total_cnt + 1):
 
             task_uuid = "task-" + str(uuid.uuid4()).replace("-", "")
 
@@ -233,7 +233,6 @@ class BatchExperimentExecutor:
             )
 
             result = {
-                "task_id": task_uuid,
                 "type_name": self.type_name,
                 "file_id": str(i),
                 "summary": summary
@@ -244,9 +243,9 @@ class BatchExperimentExecutor:
 
 if __name__ == "__main__":
     user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近存在较大异味，请查询根因。"
-    output_csv = "output.csv"
+    output_csv = "multi_vehicle_output.csv"
     type_name = "garbage"
-    num_vehicles = 1
+    num_vehicles = 3
 
     executor = BatchExperimentExecutor(user_prompt, output_csv, type_name, num_vehicles)
     executor.run_experiment()
