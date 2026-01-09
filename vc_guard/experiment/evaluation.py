@@ -87,7 +87,7 @@ class BatchLLMJudge:
 
         # 构建提示词
         prompt = evaluate_summary_template.format(
-            target_task=type_name,
+            target_task=self.type_name_answer[type_name],
             summary=summary
         )
 
