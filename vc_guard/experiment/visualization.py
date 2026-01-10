@@ -12,8 +12,8 @@ plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
 plt.rcParams['axes.unicode_minus'] = False    # 用来正常显示负号
 
 # 3. 读取数据
-single_df = pd.read_csv('../../results/evaluation/single_vehicle_evaluation.csv')
-multi_df = pd.read_csv('../../results/evaluation/multi_vehicle_evaluation.csv')
+single_df = pd.read_csv('../../results/evaluation/waste_incineration/single_vehicle_waste_incineration_evaluation.csv')
+multi_df = pd.read_csv('../../results/evaluation/waste_incineration/multi_vehicle_waste_incineration_evaluation.csv')
 
 # 4. 添加视角类型列
 single_df['视角'] = '单视角'

@@ -243,9 +243,13 @@ class BatchExperimentExecutor:
 
 
 if __name__ == "__main__":
-    user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近存在较大异味，请查询根因。"
-    output_csv = "multi_vehicle_output.csv"
-    type_name = "garbage"
+    # 经市民举报，长沙市岳麓区阜埠河路附近存在较大异味，请查询根因。
+    # 经市民举报，长沙市岳麓区阜埠河路附近机动车道拥挤，有时伴有行人通过，请查询根因。
+    # 经市民举报，长沙市岳麓区阜埠河路附近消防车拥堵，无法及时赶到火灾现场，请分析根因。
+    # 经市民举报，长沙市岳麓区阜埠河路附近出现大量烟雾，味道刺鼻，且阻挡驾驶视野，请分析根因。
+    user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近出现大量烟雾，味道刺鼻，且阻挡驾驶视野，请分析根因。"
+    output_csv = "multi_vehicle_waste_incineration_output.csv"
+    type_name = "waste_incineration"
     num_vehicles = 3
 
     executor = BatchExperimentExecutor(user_prompt, output_csv, type_name, num_vehicles)
