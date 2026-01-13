@@ -11,6 +11,22 @@ parse_user_prompt_template = HumanMessagePromptTemplate.from_template("""
 可以调用工具来根据位置返回对应经纬度。
 """)
 
+get_best_vehicle_id_list_template = HumanMessagePromptTemplate.from_template("""
+你是一个智能车辆调度规划师，需要为拍摄任务在地图中选择最优的车辆。
+## 任务信息
+当前地图信息（0 表示障碍，1 表示通路，其余数字表示道路拥堵程度，数字越大拥堵程度越高）: {grid_matrix}
+拍摄任务地点坐标：{task_location}
+需要选择的车辆数量：{num_of_vehicles}
+可用车辆列表: {agent_card_models}
+## 筛选规则
+1. 优先选择距离任务地点近的车辆；
+2. 其次选择速度适中的车辆（无需过快，避免到达后等待过久，也无需过慢，避免延误）；
+3. 仅从提供的可用车辆中选择，禁止虚构车辆ID；
+4. 在工作中的车辆不要选择；
+5. 你不需要真正地计算车辆的最优路径，你只需要大致根据上述规则进行评估即可，真正的路径计算不需要你做。
+6. 返回最终的车辆 id 列表，数量需要和需要选择的车辆一致，如果当前车辆数量总数少于需要选择的车辆数量，则返回当前所有车辆 id 列表。如果没有可用车辆，直接返回空列表即可。
+""")
+
 handle_image_observation_template = HumanMessagePromptTemplate.from_template("""
 现有车辆观测图片，请你根据本次的任务：{task_description}，把图片内容总结成文本。
 注意，仅总结和任务相关的信息。最终回复的文本不要包含 Markdown 形式，仅文字内容即可。

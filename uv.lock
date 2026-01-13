@@ -100,6 +100,7 @@ dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "pathfinding" },
     { name = "python-dotenv" },
     { name = "seaborn" },
 ]
@@ -111,6 +112,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "numpy", specifier = ">=2.4.0" },
     { name = "pandas", specifier = ">=2.3.3" },
+    { name = "pathfinding", specifier = ">=1.0.19" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "seaborn", specifier = ">=0.13.2" },
 ]
@@ -855,6 +857,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/1e/1bac1a839d12e6a82ec6cb40cda2edde64a2013a66963293696bbf31fbbb/pandas-2.3.3-cp314-cp314t-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:2e3ebdb170b5ef78f19bfb71b0dc5dc58775032361fa188e814959b74d726dd5", size = 12121582, upload-time = "2025-09-29T23:30:43.391Z" },
     { url = "https://files.pythonhosted.org/packages/44/91/483de934193e12a3b1d6ae7c8645d083ff88dec75f46e827562f1e4b4da6/pandas-2.3.3-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:d051c0e065b94b7a3cea50eb1ec32e912cd96dba41647eb24104b6c6c14c5788", size = 12699963, upload-time = "2025-09-29T23:31:10.009Z" },
     { url = "https://files.pythonhosted.org/packages/70/44/5191d2e4026f86a2a109053e194d3ba7a31a2d10a9c2348368c63ed4e85a/pandas-2.3.3-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:3869faf4bd07b3b66a9f462417d0ca3a9df29a9f6abd5d0d0dbab15dac7abe87", size = 13202175, upload-time = "2025-09-29T23:31:59.173Z" },
+]
+
+[[package]]
+name = "pathfinding"
+version = "1.0.19"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/f0/78e75e738ed255e5a262eab92b015b6ae9246bae8350c629c1acee9ff9dc/pathfinding-1.0.19.tar.gz", hash = "sha256:30fcfbe5617a1ad3b259e96a21873c1d80c5413a765756d41992b780dd422b19", size = 24259, upload-time = "2026-01-06T10:49:53.169Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8a/2e/fec3d9f887134daa9281ad8bd589b92a9a31a892d9ca241bfe23b806eabd/pathfinding-1.0.19-py3-none-any.whl", hash = "sha256:8599ff3a317f29f00f0c2c61099c7ebea76d3ee5517220efc4fe32e26d63ee19", size = 26200, upload-time = "2026-01-06T10:49:52.323Z" },
 ]
 
 [[package]]

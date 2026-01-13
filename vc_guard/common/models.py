@@ -10,6 +10,9 @@ class ParseUserPromptVo(BaseModel):
     location: tuple[float, float] = Field(description="位置经纬度")
     task: str = Field(description="任务描述")
 
+class BestVehicleIdListVo(BaseModel):
+    best_vehicle_id_list: list[str] = Field(description="最优车辆 id 列表")
+
 class HandleObservationVo(BaseModel):
     task_id: str = Field(description="本次观测任务 id")
     car_id: str = Field(description="提供报告的车辆 id")

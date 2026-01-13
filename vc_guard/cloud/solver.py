@@ -8,12 +8,15 @@ from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
 from env_utils.llm_args import *
 from vc_guard.common.constants import VEHICLE_SIMPLE_REPORT_KEY
-from vc_guard.common.models import ParseUserPromptVo, SummaryVo
-from vc_guard.common.prompts import parse_user_prompt_template, multi_view_understanding_summary_template
+from vc_guard.common.models import ParseUserPromptVo, SummaryVo, BestVehicleIdListVo
+from vc_guard.common.prompts import parse_user_prompt_template, multi_view_understanding_summary_template, \
+    get_best_vehicle_id_list_template
 from vc_guard.edge.vechicle import AgentCard
 from vc_guard.globals.executor import vehicle_executor
 from vc_guard.globals.memory import long_term_memory_store
 from vc_guard.globals.vehicles import vehicles
+from vc_guard.grid.map import MapSimulator, latlon_to_grid
+
 
 class CloudSolver:
     """
@@ -21,6 +24,7 @@ class CloudSolver:
     """
     def __init__(self):
         self.llm = ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
+        self.map_simulator = MapSimulator(width=30, height=30)  # 创建地图模拟器
 
     def _parse_user_prompt(self, user_prompt: str, is_log: bool) -> ParseUserPromptVo:
         """
@@ -83,45 +87,98 @@ class CloudSolver:
 
         return agent_cards
 
-    def _get_best_best_vehicle_id_list(self,
-                                       location: tuple[float, float],
-                                       agent_cards: list[str],
-                                       num_of_vehicles: int,
-                                       is_log: bool) -> list[str]:
+    def _init_map_simulator(self,
+                            location: tuple[float, float],
+                            agent_cards: list[str],
+                            is_log: bool) -> list[AgentCard]:
         """
-        挑选最优的车辆执行任务，使用欧式距离 TOP-K
-        :param location: 任务地点坐标
-        :param agent_cards: agent_card 列表
+        初始化地图模拟器agent_card_models: list[AgentCard],
+        :param location: 目标位置
+        :param agent_cards: 车辆信息
+        :param is_log: 是否打印日志
+        :return: 车辆对象信息
+        """
+
+        # 将任务地点坐标映射到模拟的网格地图上
+        task_location = latlon_to_grid(
+            location[0], location[1],
+            self.map_simulator.width, self.map_simulator.height
+        )
+
+        self.map_simulator.add_target_point(task_location)
+
+        agent_card_models = [AgentCard(**json.loads(agent_card)) for agent_card in agent_cards]
+
+        # 将车辆坐标映射到模拟的网格地图上
+        for agent_card_model in agent_card_models:
+            # 坐标映射
+            agent_card_model.location = latlon_to_grid(
+                agent_card_model.location[0], agent_card_model.location[1],
+                self.map_simulator.width, self.map_simulator.height
+            )
+
+        # 网格图中添加车辆
+        self.map_simulator.add_vehicle([agent_card_model.location for agent_card_model in agent_card_models])
+
+        if is_log:
+            self.map_simulator.visualize()
+
+        return agent_card_models
+
+    def _get_best_vehicle_id_list(self,
+                                  agent_card_models: list[AgentCard],
+                                  num_of_vehicles: int,
+                                  is_log: bool) -> list[str]:
+        """
+        挑选最优的车辆执行任务
+        :param agent_card_models: agent_card 对象列表
         :param num_of_vehicles: 执行任务的车辆数量
         :return: 车辆 id 列表
         """
-        agent_card_models = [AgentCard(**json.loads(agent_card)) for agent_card in agent_cards]
+        # 使用大模型筛选车辆
+        agent = create_agent(model=self.llm, tools=[], response_format=ToolStrategy(BestVehicleIdListVo))
 
-        # 堆，TOP-K
-        score_heap = []
-        for agent_card in agent_card_models:
-            # 在工作中的车辆不参与评选
-            if agent_card.is_working:
-                continue
+        prompt = get_best_vehicle_id_list_template.format(
+            grid_matrix=self.map_simulator.grid_matrix,
+            task_location=self.map_simulator.target_point,
+            num_of_vehicles=num_of_vehicles,
+            agent_card_models=agent_card_models
+        )
 
-            # TODO 这里使用欧式距离 + 速度权重来评分，评选又近又慢的车辆，考虑后续改进该评判方式
-            distance = (agent_card.location[0] - location[0]) ** 2 + (agent_card.location[1] - location[1]) ** 2
-            score = -distance * 0.7 - agent_card.speed * 0.3    # Python 默认小根堆，这里取反实现大根堆
-            heapq.heappush(score_heap, (score, agent_card.car_id))
-            if len(score_heap) > num_of_vehicles:
-                heapq.heappop(score_heap)
+        response = agent.invoke({"messages": [prompt]})
 
         # 拿到最优车辆的 id 列表
-        best_vehicle_id_list = [car_id for _, car_id in score_heap]
+        best_vehicle_id_list_vo = response["structured_response"]
+
+        best_vehicle_id_list = best_vehicle_id_list_vo.best_vehicle_id_list
 
         if is_log:
             print(f"get_best_vehicle_id_list ===> ")
-            print(f"location: {location}")
             print(f"best_vehicle_id_list: {best_vehicle_id_list}")
             print(f"get_best_vehicle_id_list <===")
             print()
 
         return best_vehicle_id_list
+
+    def _plan_path(self,
+                   agent_card_models: list[AgentCard],
+                   best_vehicle_id_set: set[str],
+                   is_log: bool):
+        # 拿到坐标信息
+        vehicle_locations = [agent_card_model.location
+                             for agent_card_model in agent_card_models
+                             if agent_card_model.car_id in best_vehicle_id_set]
+
+        vehicle_paths = {}
+
+        for i, position in enumerate(vehicle_locations):
+            vehicle_id = f"Vehicle-{i + 1}"
+            path = self.map_simulator.find_path(position, self.map_simulator.target_point)
+            vehicle_paths[vehicle_id] = path
+
+        if is_log:
+            self.map_simulator.visualize(vehicle_paths=vehicle_paths)
+
 
     def query(self,
               user_prompt: str,
@@ -143,13 +200,19 @@ class CloudSolver:
         # 2. 云端下发广播，所有车辆返回自身的 agent_card
         agent_cards = self._get_agent_cards(parse_user_prompt_vo.location, is_log)
 
+
+        agent_card_models = self._init_map_simulator(parse_user_prompt_vo.location, agent_cards, is_log)
+
         # 3. 挑选最优的车辆执行任务
-        best_vehicle_id_list = self._get_best_best_vehicle_id_list(parse_user_prompt_vo.location ,agent_cards, num_of_vehicles, is_log)
+        best_vehicle_id_list = self._get_best_vehicle_id_list(agent_card_models, num_of_vehicles, is_log)
         if not best_vehicle_id_list:
             raise Exception("没有找到合适的车辆执行任务")
 
         best_vehicle_id_set = set(best_vehicle_id_list)
         task_description = parse_user_prompt_vo.task
+
+        # 路径规划
+        self._plan_path(agent_card_models, best_vehicle_id_set, is_log)
 
         # 4. 执行任务，线程池并行模拟
         vehicle_executor.execute_tasks(
