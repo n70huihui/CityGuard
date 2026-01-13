@@ -2,6 +2,7 @@ import heapq
 import json
 import random
 import uuid
+from typing import Any
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
@@ -10,7 +11,7 @@ from env_utils.llm_args import *
 from vc_guard.common.constants import VEHICLE_SIMPLE_REPORT_KEY
 from vc_guard.common.models import ParseUserPromptVo, SummaryVo, BestVehicleIdListVo
 from vc_guard.common.prompts import parse_user_prompt_template, multi_view_understanding_summary_template, \
-    get_best_vehicle_id_list_template
+    get_best_vehicle_id_list_template, llm_judge_template
 from vc_guard.edge.vechicle import AgentCard
 from vc_guard.globals.executor import vehicle_executor
 from vc_guard.globals.memory import long_term_memory_store
@@ -22,9 +23,10 @@ class CloudSolver:
     """
     云端计算
     """
-    def __init__(self):
+    def __init__(self, map_width=30, map_height=30, max_iter_num=3):
         self.llm = ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
-        self.map_simulator = MapSimulator(width=30, height=30)  # 创建地图模拟器
+        self.map_simulator = MapSimulator(width=map_width, height=map_height)  # 创建地图模拟器
+        self.max_iter_num = max_iter_num    # 流程重试最大次数
 
     def _parse_user_prompt(self, user_prompt: str, is_log: bool) -> ParseUserPromptVo:
         """
@@ -161,17 +163,17 @@ class CloudSolver:
         return best_vehicle_id_list
 
     def _plan_path(self,
-                   agent_card_models: list[AgentCard],
-                   best_vehicle_id_set: set[str],
-                   is_log: bool):
-        # 拿到坐标信息
-        vehicle_locations = [agent_card_model.location
-                             for agent_card_model in agent_card_models
-                             if agent_card_model.car_id in best_vehicle_id_set]
-
+                   selected_vehicle_locations: list[tuple[int, int]],
+                   is_log: bool) -> None:
+        """
+        路径规划，使用 A* 算法
+        :param selected_vehicle_locations: 选中的车辆坐标
+        :param is_log: 是否打印日志
+        :return:
+        """
         vehicle_paths = {}
 
-        for i, position in enumerate(vehicle_locations):
+        for i, position in enumerate(selected_vehicle_locations):
             vehicle_id = f"Vehicle-{i + 1}"
             path = self.map_simulator.find_path(position, self.map_simulator.target_point)
             vehicle_paths[vehicle_id] = path
@@ -179,6 +181,60 @@ class CloudSolver:
         if is_log:
             self.map_simulator.visualize(vehicle_paths=vehicle_paths)
 
+    def _multi_view_understand(self,
+                               simple_report_list: list,
+                               task_description: str,
+                               task_uuid: str,
+                               is_log: bool,
+                               ) -> SummaryVo:
+        """
+        云端多视角理解
+        :param simple_report_list: 车辆简易报告
+        :param task_description: 任务描述
+        :param task_uuid: 任务 id
+        :param is_log: 是否打印日志
+        :return: 最终报告
+        """
+        prompt = multi_view_understanding_summary_template.format(
+            simple_report_list=simple_report_list,
+            task_id=task_uuid,
+            task_description=task_description
+        )
+
+        agent = create_agent(model=self.llm, tools=[], response_format=ToolStrategy(SummaryVo))
+
+        # 6. 解析输出
+        response = agent.invoke({"messages": [prompt]})
+
+        if is_log:
+            print(f"summary ===> ")
+            print(f"prompt: {prompt}")
+            print(f"summary_list: {simple_report_list}")
+            print(f"summary <===")
+            print()
+
+        final_report = response["structured_response"]
+        return final_report
+
+    def _llm_judge(self, task_description: str, final_report: SummaryVo) -> str:
+        """
+        云端 LLM 判断
+        :param final_report: 最终报告
+        :return: 是否执行任务
+        """
+        prompt = llm_judge_template.format(
+            task_description=task_description,
+            final_report=final_report
+        )
+
+        agent = create_agent(model=self.llm, tools=[])
+
+        response = agent.invoke({"messages": [prompt]})
+        # 解析输出
+        content = response["messages"][-1].content_blocks
+        status = content[0]['text']
+
+        return status
 
     def query(self,
               user_prompt: str,
@@ -199,51 +255,60 @@ class CloudSolver:
 
         # 2. 云端下发广播，所有车辆返回自身的 agent_card
         agent_cards = self._get_agent_cards(parse_user_prompt_vo.location, is_log)
-
-
         agent_card_models = self._init_map_simulator(parse_user_prompt_vo.location, agent_cards, is_log)
 
-        # 3. 挑选最优的车辆执行任务
-        best_vehicle_id_list = self._get_best_vehicle_id_list(agent_card_models, num_of_vehicles, is_log)
-        if not best_vehicle_id_list:
-            raise Exception("没有找到合适的车辆执行任务")
+        is_continue = True
+        final_report = None
+        iter_num = 0
+        while is_continue and iter_num < self.max_iter_num:
 
-        best_vehicle_id_set = set(best_vehicle_id_list)
-        task_description = parse_user_prompt_vo.task
+            # 3. 挑选最优的车辆执行任务
+            best_vehicle_id_list = self._get_best_vehicle_id_list(agent_card_models, num_of_vehicles, is_log)
+            if not best_vehicle_id_list:
+                raise Exception("没有找到合适的车辆执行任务")
 
-        # 路径规划
-        self._plan_path(agent_card_models, best_vehicle_id_set, is_log)
+            best_vehicle_id_set = set(best_vehicle_id_list)
+            task_description = parse_user_prompt_vo.task
 
-        # 4. 执行任务，线程池并行模拟
-        vehicle_executor.execute_tasks(
-            vehicle_list=vehicles,
-            best_vehicle_id_set=best_vehicle_id_set,
-            method_name='execute_task',
-            args=(parse_user_prompt_vo.location, task_description, task_uuid, is_log)
-        )
+            selected_vehicle_position = [agent_card_model.location
+                                         for agent_card_model in agent_card_models
+                                         if agent_card_model.car_id in best_vehicle_id_set]
 
-        # 获取车辆的简单报告列表
-        simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
+            # 路径规划
+            self._plan_path(selected_vehicle_position, is_log)
 
-        # 5. 多视角理解
-        prompt = multi_view_understanding_summary_template.format(
-            simple_report_list=simple_report_list,
-            task_id=task_uuid,
-            task_description=task_description
-        )
+            # 4. 执行任务，线程池并行模拟
+            vehicle_executor.execute_tasks(
+                vehicle_list=vehicles,
+                best_vehicle_id_set=best_vehicle_id_set,
+                method_name='execute_task',
+                args=(parse_user_prompt_vo.location, task_description, task_uuid, is_log)
+            )
 
-        agent = create_agent(model=self.llm, tools=[], response_format=ToolStrategy(SummaryVo))
+            # 获取车辆的简单报告列表
+            simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
 
-        # 6. 解析输出
-        response = agent.invoke({"messages": [prompt]})
+            # 5. 多视角理解
+            final_report = self._multi_view_understand(
+                simple_report_list=simple_report_list,
+                task_description=task_description,
+                task_uuid=task_uuid,
+                is_log=is_log
+            )
 
-        if is_log:
-            print(f"summary ===> ")
-            print(f"prompt: {prompt}")
-            print(f"summary_list: {simple_report_list}")
-            print(f"summary <===")
-            print()
+            # 大模型评估，查看是否能够分析出根因
+            status = self._llm_judge(task_description, final_report)
+            is_continue = True if status == "CONTINUE" else False
 
-        final_report = response["structured_response"]
+            # 无法分析根因，需要选择其他车辆来进行辅助，这里剔除掉已经选择过的车辆
+            if is_continue:
+                agent_card_models = [agent_card_model
+                                     for agent_card_model in agent_card_models
+                                     if agent_card_model.car_id not in best_vehicle_id_set]
+
+                self.map_simulator.remove_vehicle(selected_vehicle_position)
+
+            iter_num += 1
 
         return final_report
+

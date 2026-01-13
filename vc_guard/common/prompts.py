@@ -58,6 +58,19 @@ multi_view_understanding_summary_template = HumanMessagePromptTemplate.from_temp
 返回最终的报告。在总结中需要注明路段信息，以及对应位置的情况。
 """)
 
+llm_judge_template = HumanMessagePromptTemplate.from_template("""
+你是根因分析有效性检测工具，仅需输出 "CONTINUE" 或 "STOP"，无任何额外文字、标点或解释。
+## 被检测的任务描述: {task_description}
+## 检测规则
+1. 有效根因分析（输出 STOP）：报告中指出了形成问题的原因
+2. 无效根因分析（输出 CONTINUE）：
+   - 无问题形成的根因分析；
+   - 根因分析存在明显逻辑错误。
+
+## 待检测内容
+{final_report}
+""")
+
 evaluate_summary_template = HumanMessagePromptTemplate.from_template("""
 你是计算机领域专注于城市市容管理智能检测的学术评审专家，精通目标检测结果的语义一致性与有效性评估。
 你的核心任务是基于以下明确标准和目标检测场景，对智能体的检测结果进行客观量化评分，仅输出0.0-10.0的浮点分数（保留1位小数），不添加任何额外文本、格式或解释。

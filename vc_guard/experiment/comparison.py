@@ -52,7 +52,7 @@ for i, v_type in enumerate(violation_types):
     # 绘制箱线图
     bp = ax.boxplot([single, multi],
                     patch_artist=True,
-                    labels=['单视角', '多视角'])
+                    labels=['single_view', 'multi_view'])
 
     # 设置颜色
     colors = ['#1f77b4', '#ff7f0e']
@@ -61,7 +61,7 @@ for i, v_type in enumerate(violation_types):
 
     # 设置标题和标签
     ax.set_title(f'{v_type.replace("_", " ").title()}')
-    ax.set_ylabel('得分')
+    ax.set_ylabel('score')
     ax.grid(True, linestyle='--', alpha=0.7)
     ax.set_ylim(0, 11)  # 统一Y轴范围
 
