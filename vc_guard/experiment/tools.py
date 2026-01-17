@@ -72,7 +72,7 @@ def compress_png_to_jpg(folder_path: str, quality: int = 85):
 # 使用示例
 if __name__ == "__main__":
     # 指定要处理的文件夹路径
-    target_folder = "D:\Pycharm\pycharm\Pyspace\CityGuard\datasets\illegal_parking"
+    target_folder = "D:\Pycharm\pycharm\Pyspace\CityGuard\datasets\\fallen_leaves_and_accumulated_water"
 
     # 调用函数进行转换（质量设置为90）
     compress_png_to_jpg(target_folder, quality=80)

@@ -6,7 +6,11 @@ files = [
     ('illegal_parking', 'multi', 'results/evaluation/illegal_parking/multi_vehicle_illegal_parking_evaluation.csv'),
     ('illegal_parking', 'single', 'results/evaluation/illegal_parking/single_vehicle_illegal_parking_evaluation.csv'),
     ('waste_incineration', 'multi', 'results/evaluation/waste_incineration/multi_vehicle_waste_incineration_evaluation.csv'),
-    ('waste_incineration', 'single', 'results/evaluation/waste_incineration/single_vehicle_waste_incineration_evaluation.csv')
+    ('waste_incineration', 'single', 'results/evaluation/waste_incineration/single_vehicle_waste_incineration_evaluation.csv'),
+    ('fallen_leaves_and_accumulated_water', 'single', 'results/evaluation/fallen_leaves_and_accumulated_water/single_vehicle_fallen_leaves_and_accumulated_water_evaluation.csv'),
+    ('fallen_leaves_and_accumulated_water', 'multi', 'results/evaluation/fallen_leaves_and_accumulated_water/multi_vehicle_fallen_leaves_and_accumulated_water_evaluation.csv'),
+    ('road_occupation_for_business_and_construction', 'single', 'results/evaluation/road_occupation_for_business_and_construction/single_vehicle_road_occupation_for_business_and_construction_evaluation.csv'),
+    ('road_occupation_for_business_and_construction', 'multi', 'results/evaluation/road_occupation_for_business_and_construction/multi_vehicle_road_occupation_for_business_and_construction_evaluation.csv'),
 ]
 
 import pandas as pd
@@ -31,12 +35,13 @@ for violation_type, perspective, rel_path in files:
 combined_df = pd.concat(all_data)
 
 # 2. 创建4个子图
-fig, axs = plt.subplots(2, 2, figsize=(15, 12))
+fig, axs = plt.subplots(3, 2, figsize=(15, 15))
 fig.suptitle('single_view vs multi_view', fontsize=16)
 
 # 违规类型列表
 violation_types = ['bike_illegal_parking', 'garbage',
-                   'illegal_parking', 'waste_incineration']
+                   'illegal_parking', 'waste_incineration',
+                   'fallen_leaves_and_accumulated_water', 'road_occupation_for_business_and_construction']
 
 # 3. 绘制每个违规类型的箱线图
 for i, v_type in enumerate(violation_types):
