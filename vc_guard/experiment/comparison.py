@@ -1,3 +1,5 @@
+from vc_guard.observations.handlers import get_project_root
+
 files = [
     ('bike_illegal_parking', 'multi', 'results/evaluation/bike_illegal_parking/multi_vehicle_bike_illegal_parking_evaluation.csv'),
     ('bike_illegal_parking', 'single', 'results/evaluation/bike_illegal_parking/single_vehicle_bike_illegal_parking_evaluation.csv'),
@@ -18,7 +20,7 @@ import matplotlib.pyplot as plt
 import os
 
 # 设置项目根目录
-BASE_DIR = 'd:/Pycharm/pycharm/Pyspace/CityGuard'
+BASE_DIR = get_project_root()
 
 # 1. 读取并合并所有数据
 all_data = []

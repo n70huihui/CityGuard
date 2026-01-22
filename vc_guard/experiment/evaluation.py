@@ -31,7 +31,7 @@ class BatchLLMJudge:
             "bike_illegal_parking": "单车在非机动车道违规停放挤占盲道以及通行面积，进而造成行人走到机动车道，最终导致车辆拥堵。",
             "illegal_parking": "有轿车违规停放在消防专用通道上，导致消防车无法及时通行。",
             "waste_incineration": "路段周围存在垃圾、秸秆等废弃物焚烧现象，导致产生大量刺鼻烟雾。",
-            "road_occupation_for_business_and_construction": "小摊小贩违规占道经营导致了道路拥堵，同时路段附近的施工场地导致了噪音的出现。",
+            "road_occupation_for_business_and_construction": "小摊小贩违规占道经营以及路面施工导致了道路拥堵。",
             "fallen_leaves_and_accumulated_water": "洒水车作业和排水口附近聚集有大量落叶导致道路积水。"
             # TODO 其他情况
         }
@@ -162,8 +162,8 @@ class BatchLLMJudge:
 
 
 if __name__ == '__main__':
-    input_csv = '../../results/executor/fallen_leaves_and_accumulated_water/multi_vehicle_fallen_leaves_and_accumulated_water_output.csv'
-    output_csv = 'multi_vehicle_fallen_leaves_and_accumulated_water_evaluation.csv'
+    input_csv = '../../results/executor/road_occupation_for_business_and_construction/multi_vehicle_road_occupation_for_business_and_construction_output.csv'
+    output_csv = 'multi_vehicle_road_occupation_for_business_and_construction_evaluation.csv'
     batch_size = 5
 
     # start_idx = 100
