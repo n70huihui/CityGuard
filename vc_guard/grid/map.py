@@ -5,9 +5,6 @@ from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 import random
 
-from tqdm.contrib.discord import tdrange
-
-
 def latlon_to_grid(lat: float, lon: float,
                    map_width: int, map_height: int,
                    lat_range: tuple[float, float] = (-90, 90),
@@ -55,12 +52,21 @@ def get_quadrant(current_x: int, current_y: int,
     --+--
     0 | 3
     """
-    if current_x >= target_x and current_y < target_y:
+    if current_x > target_x and current_y < target_y:
         return 0
-    elif current_x < target_x and current_y <= target_y:
+    elif current_x < target_x and current_y < target_y:
         return 1
-    elif current_x <= target_x and current_y > target_y:
+    elif current_x < target_x and current_y > target_y:
         return 2
+    elif current_x > target_x and current_y > target_y:
+        return 3
+
+    if current_x == target_x and current_y < target_y:
+        return 0
+    elif current_x == target_x and current_y > target_y:
+        return 2
+    elif current_y == target_x and current_x < target_x:
+        return 1
     else:
         return 3
 
@@ -82,7 +88,7 @@ class MapSimulator:
         self.grid_matrix = np.ones((height, width), dtype=np.int32)
 
         # 车辆位置集合
-        self.vehicle_positions = set()
+        self.vehicle_id_positions: dict[str, tuple[int, int]] = {}
 
         # 添加随机障碍物
         self._add_random_obstacles(obstacle_density=0.2)
@@ -100,27 +106,29 @@ class MapSimulator:
         """
         return self.grid_matrix
 
-    def add_vehicle(self, positions: list[tuple[int, int]]) -> None:
+    def add_vehicle_id_position(self, agent_card_dict) -> None:
         """
-        添加车辆到地图
-        :param positions: 车辆位置列表 [(x1, y1), (x2, y2), ...]
+        添加车辆信息
+        :param agent_card_dict: 车辆 id - 车辆信息字典
+        :return:
         """
-        for pos in positions:
-            x, y = pos
+        for car_id, agent_card_model in agent_card_dict.items():
+            x, y = agent_card_model.location
             # 确保位置在地图范围内
             if 0 <= x < self.height and 0 <= y < self.width:
                 # 当前位置设置为车辆
                 self.grid_matrix[x][y] = 1
-                self.vehicle_positions.add(pos)
+                self.vehicle_id_positions[car_id] = (x, y)
 
-    def remove_vehicle(self, positions: list[tuple[int, int]]) -> None:
+    def remove_vehicle_id_position(self, car_id_list: list[str]) -> None:
         """
-        从地图移除车辆
-        :param positions: 车辆位置列表 [(x1, y1), (x2, y2), ...]
+        移除车辆信息
+        :param car_id_list: 车辆 id 列表
+        :return:
         """
-        for pos in positions:
-            if pos in self.vehicle_positions:
-                self.vehicle_positions.remove(pos)
+        for car_id in car_id_list:
+            if car_id in self.vehicle_id_positions:
+                del self.vehicle_id_positions[car_id]
 
     def _add_random_obstacles(self, obstacle_density: float=0.1) -> None:
         """
@@ -150,18 +158,19 @@ class MapSimulator:
                         weight = max(1, int(10 * (1 - dist / radius)))
                         self.grid_matrix[y][x] = weight
 
-    def get_nearby_vehicle_positions(self, radius: int) -> set[tuple[int, int]]:
+    def get_nearby_vehicle_id_position_dict(self, radius: int) -> dict[str, tuple[int, int]]:
         """
-        获取附近车辆位置
+        获取目标点附近车辆 id - 位置字典
         :param radius: 搜索半径
         :return: 车辆位置信息
         """
-        positions = set()
-        for x, y in self.vehicle_positions:
+        id_position_dict = {}
+        for car_id, vehicle_position in self.vehicle_id_positions.items():
+            x, y = vehicle_position
             distance = np.sqrt((x - self.target_point[0]) ** 2 + (y - self.target_point[1]) ** 2)
             if distance < radius:
-                positions.add((x, y))
-        return positions
+                id_position_dict[car_id] = (x, y)
+        return id_position_dict
 
     def add_target_point(self, target: tuple[int, int]) -> None:
         """
@@ -218,7 +227,7 @@ class MapSimulator:
                         vis_grid[px][py] = [100, 255, 100]
 
         # 绘制车辆位置
-        for (x, y) in self.vehicle_positions:
+        for (x, y) in self.vehicle_id_positions.values():
             vis_grid[x][y] = [0, 0, 255]  # 蓝色车辆
 
         # 绘制目标 - 简单的黄色方块
@@ -235,42 +244,42 @@ class MapSimulator:
 
 
 # 示例用法
-if __name__ == "__main__":
-    # 创建地图模拟器
-    simulator = MapSimulator(width=30, height=30)
-
-    # 随机生成目标点
-    end = (random.randint(0, 29), random.randint(0, 29))
-    while simulator.grid_matrix[end[0]][end[1]] == 0:
-        end = (random.randint(0, 29), random.randint(0, 29))
-    simulator.target_point = end
-
-    # 添加5辆车
-    vehicles = []
-    for _ in range(1):
-        while True:
-            x, y = random.randint(0, 29), random.randint(0, 29)
-            if simulator.grid_matrix[x][y] != 0:  # 确保不在障碍物上
-                vehicles.append((x, y))
-                break
-
-    # 将车辆添加到地图
-    simulator.add_vehicle(vehicles)
-
-    # 随机选择3辆车计算路径
-    selected_vehicles = random.sample(vehicles, 1)
-    vehicle_paths = {}
-
-    print("=== 车辆路径规划 ===")
-    for i, position in enumerate(selected_vehicles):
-        print(get_quadrant(position[0], position[1], simulator.target_point[0], simulator.target_point[1]))
-        vehicle_id = f"Vehicle-{i + 1}"
-        path = simulator.find_path(position, end)
-        vehicle_paths[vehicle_id] = path
-
-    # 可视化结果
-    simulator.visualize(vehicle_paths=vehicle_paths)
-
-    # 移除所有车辆
-    simulator.remove_vehicle(vehicles)
-    print("车辆已移除")
+# if __name__ == "__main__":
+    # # 创建地图模拟器
+    # simulator = MapSimulator(width=30, height=30)
+    #
+    # # 随机生成目标点
+    # end = (random.randint(0, 29), random.randint(0, 29))
+    # while simulator.grid_matrix[end[0]][end[1]] == 0:
+    #     end = (random.randint(0, 29), random.randint(0, 29))
+    # simulator.target_point = end
+    #
+    # # 添加5辆车
+    # vehicles = []
+    # for _ in range(1):
+    #     while True:
+    #         x, y = random.randint(0, 29), random.randint(0, 29)
+    #         if simulator.grid_matrix[x][y] != 0:  # 确保不在障碍物上
+    #             vehicles.append((x, y))
+    #             break
+    #
+    # # 将车辆添加到地图
+    # simulator.add_vehicle(vehicles)
+    #
+    # # 随机选择3辆车计算路径
+    # selected_vehicles = random.sample(vehicles, 1)
+    # vehicle_paths = {}
+    #
+    # print("=== 车辆路径规划 ===")
+    # for i, position in enumerate(selected_vehicles):
+    #     print(get_quadrant(position[0], position[1], simulator.target_point[0], simulator.target_point[1]))
+    #     vehicle_id = f"Vehicle-{i + 1}"
+    #     path = simulator.find_path(position, end)
+    #     vehicle_paths[vehicle_id] = path
+    #
+    # # 可视化结果
+    # simulator.visualize(vehicle_paths=vehicle_paths)
+    #
+    # # 移除所有车辆
+    # simulator.remove_vehicle(vehicles)
+    # print("车辆已移除")

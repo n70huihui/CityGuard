@@ -27,6 +27,7 @@ get_best_vehicle_id_list_template = HumanMessagePromptTemplate.from_template("""
 拍摄任务地点坐标：{task_location}
 需要选择的车辆数量：{num_of_vehicles}
 可用车辆列表: {agent_card_models}
+可用车辆对应的象限列表: {agent_cared_models_quadrants}
 ## 筛选规则
 1. 优先选择距离任务地点近的车辆；
 2. 其次选择速度适中的车辆；

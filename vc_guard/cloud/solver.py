@@ -91,14 +91,14 @@ class CloudSolver:
 
     def _init_map_simulator(self,
                             location: tuple[float, float],
-                            agent_cards: list[str],
-                            is_log: bool) -> list[AgentCard]:
+                            agent_card_dict: dict[str, AgentCard],
+                            is_log: bool) -> None:
         """
-        初始化地图模拟器agent_card_models: list[AgentCard],
+        初始化地图模拟器
         :param location: 目标位置
-        :param agent_cards: 车辆信息
+        :param agent_card_dict: 车辆信息字典
         :param is_log: 是否打印日志
-        :return: 车辆对象信息
+        :return:
         """
 
         # 将任务地点坐标映射到模拟的网格地图上
@@ -109,10 +109,9 @@ class CloudSolver:
 
         map_simulator.add_target_point(task_location)
 
-        agent_card_models = [AgentCard(**json.loads(agent_card)) for agent_card in agent_cards]
-
         # 将车辆坐标映射到模拟的网格地图上
-        for agent_card_model in agent_card_models:
+        for car_id in agent_card_dict.keys():
+            agent_card_model = agent_card_dict[car_id]
             # 坐标映射
             agent_card_model.location = latlon_to_grid(
                 agent_card_model.location[0], agent_card_model.location[1],
@@ -120,33 +119,32 @@ class CloudSolver:
             )
 
         # 网格图中添加车辆
-        map_simulator.add_vehicle([agent_card_model.location for agent_card_model in agent_card_models])
+        map_simulator.add_vehicle_id_position(agent_card_dict)
 
         if is_log:
             map_simulator.visualize()
 
-        return agent_card_models
-
     def _get_nearby_vehicle_id_list(self,
-                                    agent_card_models: list[AgentCard],
+                                    agent_card_dict: dict[str, AgentCard],
                                     radius: int,
                                     is_log: bool) -> tuple[list[str], set[int]]:
         """
         获取附近车辆的 id 列表
-        :param agent_card_models: agent_card 对象列表
+        :param agent_card_dict: agent_card 对象字典
         :param radius: 搜索半径
         :param is_log: 是否打印日志
         :return: 附近车辆的 id 列表，车辆涉及的象限列表
         """
-        positions = map_simulator.get_nearby_vehicle_positions(radius)
+
+        # 拿到附近车辆的 id - 位置字典
+        nearby_vehicle_id_position_dict: dict[str, tuple[int, int]] = map_simulator.get_nearby_vehicle_id_position_dict(radius)
+
+        # 整理象限集合
         quadrants = set()
+        for car_id, position in nearby_vehicle_id_position_dict.items():
+            quadrants.add(get_quadrant(position[0], position[1], map_simulator.target_point[0], map_simulator.target_point[1]))
 
-        for position_x, position_y in positions:
-            quadrants.add(get_quadrant(position_x, position_y, map_simulator.target_point[0], map_simulator.target_point[1]))
-
-        nearby_vehicle_id_list = [agent_card_model.car_id
-                              for agent_card_model in agent_card_models
-                              if agent_card_model.location in positions]
+        nearby_vehicle_id_list = [car_id for car_id in nearby_vehicle_id_position_dict.keys()]
 
         if is_log:
             print(f"get_nearby_vehicle_id_list ===> ")
@@ -156,28 +154,64 @@ class CloudSolver:
 
         return nearby_vehicle_id_list, quadrants
 
+    def _get_final_report_from_nearby_observation(self,
+                                                  nearby_vehicle_id_list: list[str],
+                                                  task_location: str,
+                                                  task_description: str,
+                                                  task_uuid: str,
+                                                  is_log: bool) -> SummaryVo:
+        """
+        从附近车辆的观察中获取最终报告
+        :param nearby_vehicle_id_list: 附近车辆 id 列表
+        :param task_location: 任务地点描述
+        :param task_description: 任务描述
+        :param task_uuid: 任务 id
+        :param is_log: 是否开启日志
+        :return: 最终报告
+        """
+        vehicle_executor.execute_tasks(
+            best_vehicle_id_set=set(nearby_vehicle_id_list),
+            method_name='execute_task',
+            args=(task_location, task_description, task_uuid, is_log)
+        )
+
+        simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
+
+        return self._multi_view_understand(
+            simple_report_list=simple_report_list,
+            task_description=task_description,
+            task_uuid=task_uuid,
+            is_log=is_log
+        )
 
     def _get_best_vehicle_id_list(self,
-                                  agent_card_models: list[AgentCard],
                                   num_of_vehicles: int,
+                                  agent_card_dict: dict,
                                   quadrants: set[int],
                                   is_log: bool) -> BestVehicleListVo:
         """
         挑选最优的车辆执行任务
-        :param agent_card_models: agent_card 对象列表
         :param num_of_vehicles: 执行任务的车辆数量
+        :param agent_card_dict: 车辆信息字典
         :param quadrants: 检测过的象限集合
         :return: 车辆 id 列表以及终点坐标
         """
         # 使用大模型筛选车辆
         agent = create_agent(model=self.llm, tools=[], response_format=ToolStrategy(BestVehicleListVo))
 
+        agent_card_models = agent_card_dict.values()
+        agent_card_models_quadrants = [
+            get_quadrant(agent_card_model.location[0], agent_card_model.location[1], map_simulator.target_point[0], map_simulator.target_point[1])
+            for agent_card_model in agent_card_models
+        ]
+
         prompt = get_best_vehicle_id_list_template.format(
             grid_matrix=map_simulator.grid_matrix,
             observed_quadrant=quadrants,
             task_location=map_simulator.target_point,
             num_of_vehicles=num_of_vehicles,
-            agent_card_models=agent_card_models
+            agent_card_models=agent_card_dict,
+            agent_cared_models_quadrants=agent_card_models_quadrants
         )
 
         response = agent.invoke({"messages": [prompt]})
@@ -285,34 +319,27 @@ class CloudSolver:
         task_uuid = "task-" + str(uuid.uuid4()).replace("-", "")
 
         # 1. 云端 LLM 解析用户输入
-        parse_user_prompt_vo = self._parse_user_prompt(user_prompt, is_log)
+        parse_user_prompt_vo: ParseUserPromptVo = self._parse_user_prompt(user_prompt, is_log)
         task_description = parse_user_prompt_vo.task
+        location = parse_user_prompt_vo.location
+        task_location = parse_user_prompt_vo.task_location
 
-        # 2. 云端下发广播，所有车辆返回自身的 agent_card
-        agent_cards = self._get_agent_cards(parse_user_prompt_vo.location, is_log)
+        # 2. 云端下发广播，所有车辆返回自身的 agent_card，并对 agent_card 进行实例化以及字典化
+        agent_cards = self._get_agent_cards(location, is_log)
+        agent_card_dict: dict[str, AgentCard] = {}
+        for agent_card in agent_cards:
+            agent_card_model = AgentCard(**json.loads(agent_card))
+            agent_card_dict[agent_card_model.car_id] = agent_card_model
 
-        # 初始化地图模拟器：车辆坐标映射，添加目标点
-        agent_card_models = self._init_map_simulator(parse_user_prompt_vo.location, agent_cards, is_log)
+        # 3. 初始化地图模拟器：车辆坐标映射，添加目标点
+        self._init_map_simulator(location, agent_card_dict, is_log)
 
         final_report = None
 
-        # 3. 根据目标位置，搜索附近的车辆，直接获取历史记录
-        nearby_vehicle_id_list, quadrants = self._get_nearby_vehicle_id_list(agent_card_models, 5, is_log)
+        # 4. 根据目标位置，搜索附近的车辆，直接获取历史记录
+        nearby_vehicle_id_list, quadrants = self._get_nearby_vehicle_id_list(agent_card_dict, 5, is_log)
         if nearby_vehicle_id_list:
-            vehicle_executor.execute_tasks(
-                best_vehicle_id_set=set(nearby_vehicle_id_list),
-                method_name='execute_task',
-                args=(parse_user_prompt_vo.location, task_description, task_uuid, is_log)
-            )
-
-            simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
-
-            final_report = self._multi_view_understand(
-                simple_report_list=simple_report_list,
-                task_description=task_description,
-                task_uuid=task_uuid,
-                is_log=is_log
-            )
+            final_report = self._get_final_report_from_nearby_observation(nearby_vehicle_id_list, task_location, task_description, task_uuid, is_log)
 
         if final_report:
             # 大模型评估，查看是否能够分析出根因
@@ -322,17 +349,19 @@ class CloudSolver:
             if status != "CONTINUE":
                 return final_report
 
-        agent_card_models = [agent_card_model
-                             for agent_card_model in agent_card_models
-                             if agent_card_model.car_id not in nearby_vehicle_id_list]
-        map_simulator.remove_vehicle(nearby_vehicle_id_list)
+        # 删除作废车辆
+        for car_id in nearby_vehicle_id_list:
+            del agent_card_dict[car_id]
 
+        map_simulator.remove_vehicle_id_position(nearby_vehicle_id_list)
+
+        # 5. 当附近车辆的历史记录没办法完成任务时，主动调度车辆前往
         is_continue = True
         iter_num = 0
         while is_continue and iter_num < self.max_iter_num:
 
             # 挑选最优的车辆执行任务
-            best_vehicle_vo = self._get_best_vehicle_id_list(agent_card_models, num_of_vehicles, quadrants, is_log)
+            best_vehicle_vo = self._get_best_vehicle_id_list(num_of_vehicles, agent_card_dict, quadrants, is_log)
 
             best_vehicle_id_list = best_vehicle_vo.best_vehicle_id_list
             best_vehicle_target_list = best_vehicle_vo.best_vehicle_target_points_list
@@ -340,19 +369,9 @@ class CloudSolver:
             if not best_vehicle_id_list or not best_vehicle_target_list or len(best_vehicle_id_list) != len(best_vehicle_target_list):
                 raise Exception("没有找到合适的车辆执行任务")
 
-            best_vehicle_id_set = set(best_vehicle_id_list)
-
-            selected_vehicle_position = [agent_card_model.location
-                                         for agent_card_model in agent_card_models
-                                         if agent_card_model.car_id in best_vehicle_id_set]
-
             for idx, vehicle_id in enumerate(best_vehicle_id_list):
                 target = best_vehicle_target_list[idx]
-                selected_position = None
-                for agent_card_model in agent_card_models:
-                    if agent_card_model.car_id == vehicle_id:
-                        selected_position = agent_card_model.location
-                        break
+                selected_position = agent_card_dict[vehicle_id].location
                 # 路径规划
                 self._plan_path([selected_position], is_log, target)
                 # 模拟车辆到达预设地点
@@ -362,17 +381,17 @@ class CloudSolver:
                 quadrant_idx = get_quadrant(target[0], target[1], map_simulator.target_point[0], map_simulator.target_point[1])
                 quadrants.add(quadrant_idx)
 
-            # 4. 执行任务，线程池并行模拟
+            # 6. 执行任务，线程池并行模拟
             vehicle_executor.execute_tasks(
-                best_vehicle_id_set=best_vehicle_id_set,
+                best_vehicle_id_set=set(best_vehicle_id_list),
                 method_name='execute_task',
-                args=(parse_user_prompt_vo.location, task_description, task_uuid, is_log)
+                args=(task_location, task_description, task_uuid, is_log)
             )
 
             # 获取车辆的简单报告列表
             simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
 
-            # 5. 多视角理解
+            # 7. 多视角理解
             final_report = self._multi_view_understand(
                 simple_report_list=simple_report_list,
                 task_description=task_description,
@@ -380,19 +399,17 @@ class CloudSolver:
                 is_log=is_log
             )
 
-            # 大模型评估，查看是否能够分析出根因
+            # 8. 大模型评估，查看是否能够分析出根因
             status = self._llm_judge(task_description, final_report)
             is_continue = True if status == "CONTINUE" else False
 
             # 无法分析根因，需要选择其他车辆来进行辅助，这里剔除掉已经选择过的车辆
             if is_continue:
-                agent_card_models = [agent_card_model
-                                     for agent_card_model in agent_card_models
-                                     if agent_card_model.car_id not in best_vehicle_id_set]
-
-                map_simulator.remove_vehicle(selected_vehicle_position)
+                for vehicle_id in best_vehicle_id_list:
+                    del agent_card_dict[vehicle_id]
+                map_simulator.remove_vehicle_id_position(best_vehicle_id_list)
 
             iter_num += 1
 
+        # 9. 返回最终报告
         return final_report
-
