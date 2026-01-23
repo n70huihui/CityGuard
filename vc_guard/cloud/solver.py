@@ -1,8 +1,6 @@
-import heapq
 import json
 import random
 import uuid
-from typing import Any
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
@@ -107,7 +105,8 @@ class CloudSolver:
             map_simulator.width, map_simulator.height
         )
 
-        map_simulator.add_target_point(task_location)
+        # 测试：中心点为目标点
+        map_simulator.add_target_point((15, 15))
 
         # 将车辆坐标映射到模拟的网格地图上
         for car_id in agent_card_dict.keys():
@@ -125,12 +124,10 @@ class CloudSolver:
             map_simulator.visualize()
 
     def _get_nearby_vehicle_id_list(self,
-                                    agent_card_dict: dict[str, AgentCard],
                                     radius: int,
                                     is_log: bool) -> tuple[list[str], set[int]]:
         """
         获取附近车辆的 id 列表
-        :param agent_card_dict: agent_card 对象字典
         :param radius: 搜索半径
         :param is_log: 是否打印日志
         :return: 附近车辆的 id 列表，车辆涉及的象限列表
@@ -200,18 +197,13 @@ class CloudSolver:
         agent = create_agent(model=self.llm, tools=[], response_format=ToolStrategy(BestVehicleListVo))
 
         agent_card_models = agent_card_dict.values()
-        agent_card_models_quadrants = [
-            get_quadrant(agent_card_model.location[0], agent_card_model.location[1], map_simulator.target_point[0], map_simulator.target_point[1])
-            for agent_card_model in agent_card_models
-        ]
 
         prompt = get_best_vehicle_id_list_template.format(
             grid_matrix=map_simulator.grid_matrix,
             observed_quadrant=quadrants,
             task_location=map_simulator.target_point,
             num_of_vehicles=num_of_vehicles,
-            agent_card_models=agent_card_dict,
-            agent_cared_models_quadrants=agent_card_models_quadrants
+            agent_card_models=agent_card_models
         )
 
         response = agent.invoke({"messages": [prompt]})
@@ -221,6 +213,7 @@ class CloudSolver:
 
         if is_log:
             print(f"get_best_vehicle_id_list ===> ")
+            print(f"observed_quadrant: {quadrants}")
             print(f"best_vehicle_id_list: {best_vehicle_id_list_vo.best_vehicle_id_list}")
             print(f"best_vehicle_position_list: {best_vehicle_id_list_vo.best_vehicle_target_points_list}")
             print(f"get_best_vehicle_id_list <===")
@@ -337,7 +330,7 @@ class CloudSolver:
         final_report = None
 
         # 4. 根据目标位置，搜索附近的车辆，直接获取历史记录
-        nearby_vehicle_id_list, quadrants = self._get_nearby_vehicle_id_list(agent_card_dict, 5, is_log)
+        nearby_vehicle_id_list, quadrants = self._get_nearby_vehicle_id_list(3, is_log)
         if nearby_vehicle_id_list:
             final_report = self._get_final_report_from_nearby_observation(nearby_vehicle_id_list, task_location, task_description, task_uuid, is_log)
 

@@ -151,7 +151,7 @@ class MapImageObservationHandler(BaseObservationHandler):
         quadrant_idx = get_quadrant(current_x, current_y, target_x, target_y)
         choice = cars[quadrant_idx]
 
-        print(choice)
+        print(f"get_observation: {current_x, current_y, choice}")
 
         # 获取数据集根目录
         project_root = get_project_root()
