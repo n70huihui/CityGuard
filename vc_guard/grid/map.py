@@ -5,6 +5,8 @@ from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 import random
 
+from tqdm.contrib.discord import tdrange
+
 
 def latlon_to_grid(lat: float, lon: float,
                    map_width: int, map_height: int,
@@ -38,6 +40,30 @@ def latlon_to_grid(lat: float, lon: float,
     y = max(0, min(map_height - 1, y))
 
     return x, y
+
+
+def get_quadrant(current_x: int, current_y: int,
+                 target_x: int, target_y: int) -> int:
+    """
+    根据车辆坐标和目标点坐标确定所在象限
+    :param current_x: 车辆 X 坐标
+    :param current_y: 车辆 Y 坐标
+    :param target_x: 目标点 X 坐标
+    :param target_y: 目标点 Y 坐标
+    :return: 象限编号 (0-3)
+    1 | 2
+    --+--
+    0 | 3
+    """
+    if current_x >= target_x and current_y < target_y:
+        return 0
+    elif current_x < target_x and current_y <= target_y:
+        return 1
+    elif current_x <= target_x and current_y > target_y:
+        return 2
+    else:
+        return 3
+
 
 class MapSimulator:
     """
@@ -215,15 +241,16 @@ if __name__ == "__main__":
 
     # 随机生成目标点
     end = (random.randint(0, 29), random.randint(0, 29))
-    while simulator.grid_matrix[end[1]][end[0]] == 0:
+    while simulator.grid_matrix[end[0]][end[1]] == 0:
         end = (random.randint(0, 29), random.randint(0, 29))
+    simulator.target_point = end
 
     # 添加5辆车
     vehicles = []
-    for _ in range(5):
+    for _ in range(1):
         while True:
             x, y = random.randint(0, 29), random.randint(0, 29)
-            if simulator.grid_matrix[y][x] != 0:  # 确保不在障碍物上
+            if simulator.grid_matrix[x][y] != 0:  # 确保不在障碍物上
                 vehicles.append((x, y))
                 break
 
@@ -231,22 +258,18 @@ if __name__ == "__main__":
     simulator.add_vehicle(vehicles)
 
     # 随机选择3辆车计算路径
-    selected_vehicles = random.sample(vehicles, 3)
+    selected_vehicles = random.sample(vehicles, 1)
     vehicle_paths = {}
 
     print("=== 车辆路径规划 ===")
     for i, position in enumerate(selected_vehicles):
+        print(get_quadrant(position[0], position[1], simulator.target_point[0], simulator.target_point[1]))
         vehicle_id = f"Vehicle-{i + 1}"
         path = simulator.find_path(position, end)
         vehicle_paths[vehicle_id] = path
 
-        # 打印车辆路径信息
-        print(f"{vehicle_id} 从 {position} 到 {end}")
-        print(f"路径长度: {len(path)}")
-        print(f"路径: {path[:3]}...{path[-3:]}\n")  # 显示前3个和后3个路径点
-
     # 可视化结果
-    simulator.visualize(vehicle_paths=vehicle_paths, target=end)
+    simulator.visualize(vehicle_paths=vehicle_paths)
 
     # 移除所有车辆
     simulator.remove_vehicle(vehicles)

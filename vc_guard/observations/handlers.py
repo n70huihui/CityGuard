@@ -11,7 +11,7 @@ from vc_guard.common.models import HandleObservationVo
 from langgraph.graph.state import CompiledStateGraph
 
 from vc_guard.common.prompts import handle_text_observation_template
-from vc_guard.grid.map import MapSimulator, latlon_to_grid
+from vc_guard.grid.map import MapSimulator, latlon_to_grid, get_quadrant
 
 
 def get_project_root() -> Any:
@@ -135,21 +135,6 @@ class MapImageObservationHandler(BaseObservationHandler):
     """
     地图图像观测处理器
     """
-    def _get_quadrant(self, current_x: int, current_y: int,
-                     target_x: int, target_y: int) -> int:
-        """
-        根据车辆坐标和目标点坐标确定所在象限
-        :param current_x: 车辆 X 坐标
-        :param current_y: 车辆 Y 坐标
-        :param target_x: 目标点 X 坐标
-        :param target_y: 目标点 Y 坐标
-        :return: 象限编号 (0-3)
-        """
-        if current_x >= target_x:
-            return 3 if current_y >= target_y else 0
-        else:
-            return 2 if current_y >= target_y else 1
-
     def get_observation(self, *args) -> tuple[str | list[str] | dict[str, object], int]:
         cars: list[str] = ['car1', 'car2', 'car3', 'car4']
 
@@ -157,12 +142,13 @@ class MapImageObservationHandler(BaseObservationHandler):
         current_x, current_y = args[1]
 
         # 坐标映射
-        current_x, current_y = latlon_to_grid(current_x, current_y, map_simulator.width, map_simulator.height)
+        if not isinstance(current_x, int):
+            current_x, current_y = latlon_to_grid(current_x, current_y, map_simulator.width, map_simulator.height)
 
         target_x, target_y = map_simulator.target_point
 
         # 根据象限位置，获取观测
-        quadrant_idx = self._get_quadrant(current_x, current_y, target_x, target_y)
+        quadrant_idx = get_quadrant(current_x, current_y, target_x, target_y)
         choice = cars[quadrant_idx]
 
         print(choice)

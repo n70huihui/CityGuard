@@ -49,6 +49,7 @@ class Vehicle:
     def __init__(self, observation_handler: BaseObservationHandler = MapImageObservationHandler()):
         # 车辆属性赋值
         self.car_id: str = uuid.uuid4().__str__()
+        self.map_location: tuple[int, int] = (-1, -1)
         self.location: tuple[float, float] = (random.uniform(-90, 90), random.uniform(-180, 180))
         self.is_working: bool = False
         self.ability: list[str] = []
@@ -100,7 +101,7 @@ class Vehicle:
         self.is_working = True
 
         # 调用观测处理器处理观测
-        observation, timestamp = self.observation_handler.get_observation(map_simulator, self.location, "garbage", "1")
+        observation, timestamp = self.observation_handler.get_observation(map_simulator, self.location if self.map_location[0] == -1 else self.map_location, "garbage", "1")
         simple_report = self.observation_handler.handle_observation(
             agent=self.agent,
             observation=observation,
