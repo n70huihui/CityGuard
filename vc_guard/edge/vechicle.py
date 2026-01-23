@@ -127,6 +127,7 @@ class Vehicle:
         self.is_working = False
 
 class VehicleExecutor:
+    from vc_guard.globals.vehicles import vehicles
     """
     使用线程池模拟车辆并行执行任务
     """
@@ -134,11 +135,11 @@ class VehicleExecutor:
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
 
     def execute_tasks(self,
-                      vehicle_list: list[Vehicle],
                       best_vehicle_id_set: set[str],
                       method_name: str,
                       args: tuple = None,
-                      return_results: bool = False
+                      return_results: bool = False,
+                      vehicle_list: list[Vehicle] = vehicles
                       ) -> list[object] | None:
         """
         执行车辆对象的指定方法

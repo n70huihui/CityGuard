@@ -127,7 +127,30 @@ class CloudSolver:
 
         return agent_card_models
 
-    # def _get_nearby_vehicle_id_set(self):
+    def _get_nearby_vehicle_id_list(self,
+                                    agent_card_models: list[AgentCard],
+                                    radius: int,
+                                    is_log: bool) -> list[str]:
+        """
+        获取附近车辆的 id 列表
+        :param agent_card_models: agent_card 对象列表
+        :param radius: 搜索半径
+        :param is_log: 是否打印日志
+        :return: 附近车辆的 id 列表
+        """
+        positions = map_simulator.get_nearby_vehicle_positions(radius)
+        nearby_vehicle_id_list = [agent_card_model.car_id
+                              for agent_card_model in agent_card_models
+                              if agent_card_model.location in positions]
+
+        if is_log:
+            print(f"get_nearby_vehicle_id_list ===> ")
+            print(f"nearby_vehicle_id_list: {nearby_vehicle_id_list}")
+            print(f"get_nearby_vehicle_id_list <===")
+            print()
+
+        return nearby_vehicle_id_list
+
 
     def _get_best_vehicle_id_list(self,
                                   agent_card_models: list[AgentCard],
@@ -254,6 +277,7 @@ class CloudSolver:
 
         # 1. 云端 LLM 解析用户输入
         parse_user_prompt_vo = self._parse_user_prompt(user_prompt, is_log)
+        task_description = parse_user_prompt_vo.task
 
         # 2. 云端下发广播，所有车辆返回自身的 agent_card
         agent_cards = self._get_agent_cards(parse_user_prompt_vo.location, is_log)
@@ -264,7 +288,31 @@ class CloudSolver:
         final_report = None
 
         # 3. 根据目标位置，搜索附近的车辆，直接获取历史记录
-        nearby_vehicle_id_set = self._get_nearby_vehicle_id_set()
+        nearby_vehicle_id_list = self._get_nearby_vehicle_id_list(agent_card_models, 6, is_log)
+        if nearby_vehicle_id_list:
+            vehicle_executor.execute_tasks(
+                best_vehicle_id_set=set(nearby_vehicle_id_list),
+                method_name='execute_task',
+                args=(parse_user_prompt_vo.location, task_description, task_uuid, is_log)
+            )
+
+            simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
+
+            final_report = self._multi_view_understand(
+                simple_report_list=simple_report_list,
+                task_description=task_description,
+                task_uuid=task_uuid,
+                is_log=is_log
+            )
+
+        if final_report:
+            # 大模型评估，查看是否能够分析出根因
+            status = self._llm_judge(task_description, final_report)
+
+            if status != "CONTINUE":
+                return final_report
+
+        map_simulator.remove_vehicle(nearby_vehicle_id_list)
 
         is_continue = True
         iter_num = 0
@@ -276,7 +324,6 @@ class CloudSolver:
                 raise Exception("没有找到合适的车辆执行任务")
 
             best_vehicle_id_set = set(best_vehicle_id_list)
-            task_description = parse_user_prompt_vo.task
 
             selected_vehicle_position = [agent_card_model.location
                                          for agent_card_model in agent_card_models
@@ -287,7 +334,6 @@ class CloudSolver:
 
             # 4. 执行任务，线程池并行模拟
             vehicle_executor.execute_tasks(
-                vehicle_list=vehicles,
                 best_vehicle_id_set=best_vehicle_id_set,
                 method_name='execute_task',
                 args=(parse_user_prompt_vo.location, task_description, task_uuid, is_log)

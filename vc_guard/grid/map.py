@@ -82,9 +82,9 @@ class MapSimulator:
         for pos in positions:
             x, y = pos
             # 确保位置在地图范围内
-            if 0 <= x < self.width and 0 <= y < self.height:
+            if 0 <= x < self.height and 0 <= y < self.width:
                 # 当前位置设置为车辆
-                self.grid_matrix[y][x] = 1
+                self.grid_matrix[x][y] = 1
                 self.vehicle_positions.add(pos)
 
     def remove_vehicle(self, positions: list[tuple[int, int]]) -> None:
@@ -123,6 +123,19 @@ class MapSimulator:
                         # 中心区域权重最高，向外递减
                         weight = max(1, int(10 * (1 - dist / radius)))
                         self.grid_matrix[y][x] = weight
+
+    def get_nearby_vehicle_positions(self, radius: int) -> set[tuple[int, int]]:
+        """
+        获取附近车辆位置
+        :param radius: 搜索半径
+        :return: 车辆位置信息
+        """
+        positions = set()
+        for x, y in self.vehicle_positions:
+            distance = np.sqrt((x - self.target_point[0]) ** 2 + (y - self.target_point[1]) ** 2)
+            if distance < radius:
+                positions.add((x, y))
+        return positions
 
     def add_target_point(self, target: tuple[int, int]) -> None:
         """
@@ -176,16 +189,16 @@ class MapSimulator:
                 if path:
                     for px, py in path:
                         # 浅绿色路径 [100, 255, 100]
-                        vis_grid[py][px] = [100, 255, 100]
+                        vis_grid[px][py] = [100, 255, 100]
 
         # 绘制车辆位置
         for (x, y) in self.vehicle_positions:
-            vis_grid[y][x] = [0, 0, 255]  # 蓝色车辆
+            vis_grid[x][y] = [0, 0, 255]  # 蓝色车辆
 
         # 绘制目标 - 简单的黄色方块
         if self.target_point:
             x, y = self.target_point
-            vis_grid[y][x] = [255, 255, 0]  # 黄色目标
+            vis_grid[x][y] = [255, 255, 0]  # 黄色目标
 
         # 显示图像
         plt.figure(figsize=(10, 10))
