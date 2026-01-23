@@ -11,7 +11,7 @@ from vc_guard.common.models import HandleObservationVo
 from langgraph.graph.state import CompiledStateGraph
 
 from vc_guard.common.prompts import handle_text_observation_template
-from vc_guard.grid.map import MapSimulator
+from vc_guard.grid.map import MapSimulator, latlon_to_grid
 
 
 def get_project_root() -> Any:
@@ -155,6 +155,10 @@ class MapImageObservationHandler(BaseObservationHandler):
 
         map_simulator: MapSimulator = args[0]
         current_x, current_y = args[1]
+
+        # 坐标映射
+        current_x, current_y = latlon_to_grid(current_x, current_y, map_simulator.width, map_simulator.height)
+
         target_x, target_y = map_simulator.target_point
 
         # 根据象限位置，获取观测
@@ -162,7 +166,14 @@ class MapImageObservationHandler(BaseObservationHandler):
         choice = cars[quadrant_idx]
 
         print(choice)
-        base64_lst = file_image_to_base64(args[2], args[3], args[4], choice)
+
+        # 获取数据集根目录
+        project_root = get_project_root()
+
+        # 拼接目标目录路径
+        dataset_path = os.path.join(project_root, "datasets")
+
+        base64_lst = file_image_to_base64(dataset_path, args[2], args[3], choice)
 
         return base64_lst, int(time.time())
 

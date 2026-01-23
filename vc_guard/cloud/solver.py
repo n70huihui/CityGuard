@@ -16,16 +16,16 @@ from vc_guard.edge.vechicle import AgentCard
 from vc_guard.globals.executor import vehicle_executor
 from vc_guard.globals.memory import long_term_memory_store
 from vc_guard.globals.vehicles import vehicles
-from vc_guard.grid.map import MapSimulator, latlon_to_grid
+from vc_guard.grid.map import latlon_to_grid
+from vc_guard.globals.grid import map_simulator
 
 
 class CloudSolver:
     """
     云端计算
     """
-    def __init__(self, map_width=30, map_height=30, max_iter_num=3):
+    def __init__(self, max_iter_num=3):
         self.llm = ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
-        self.map_simulator = MapSimulator(width=map_width, height=map_height)  # 创建地图模拟器
         self.max_iter_num = max_iter_num    # 流程重试最大次数
 
     def _parse_user_prompt(self, user_prompt: str, is_log: bool) -> ParseUserPromptVo:
@@ -104,10 +104,10 @@ class CloudSolver:
         # 将任务地点坐标映射到模拟的网格地图上
         task_location = latlon_to_grid(
             location[0], location[1],
-            self.map_simulator.width, self.map_simulator.height
+            map_simulator.width, map_simulator.height
         )
 
-        self.map_simulator.add_target_point(task_location)
+        map_simulator.add_target_point(task_location)
 
         agent_card_models = [AgentCard(**json.loads(agent_card)) for agent_card in agent_cards]
 
@@ -116,16 +116,18 @@ class CloudSolver:
             # 坐标映射
             agent_card_model.location = latlon_to_grid(
                 agent_card_model.location[0], agent_card_model.location[1],
-                self.map_simulator.width, self.map_simulator.height
+                map_simulator.width, map_simulator.height
             )
 
         # 网格图中添加车辆
-        self.map_simulator.add_vehicle([agent_card_model.location for agent_card_model in agent_card_models])
+        map_simulator.add_vehicle([agent_card_model.location for agent_card_model in agent_card_models])
 
         if is_log:
-            self.map_simulator.visualize()
+            map_simulator.visualize()
 
         return agent_card_models
+
+    # def _get_nearby_vehicle_id_set(self):
 
     def _get_best_vehicle_id_list(self,
                                   agent_card_models: list[AgentCard],
@@ -141,8 +143,8 @@ class CloudSolver:
         agent = create_agent(model=self.llm, tools=[], response_format=ToolStrategy(BestVehicleIdListVo))
 
         prompt = get_best_vehicle_id_list_template.format(
-            grid_matrix=self.map_simulator.grid_matrix,
-            task_location=self.map_simulator.target_point,
+            grid_matrix=map_simulator.grid_matrix,
+            task_location=map_simulator.target_point,
             num_of_vehicles=num_of_vehicles,
             agent_card_models=agent_card_models
         )
@@ -175,11 +177,11 @@ class CloudSolver:
 
         for i, position in enumerate(selected_vehicle_locations):
             vehicle_id = f"Vehicle-{i + 1}"
-            path = self.map_simulator.find_path(position, self.map_simulator.target_point)
+            path = map_simulator.find_path(position, map_simulator.target_point)
             vehicle_paths[vehicle_id] = path
 
         if is_log:
-            self.map_simulator.visualize(vehicle_paths=vehicle_paths)
+            map_simulator.visualize(vehicle_paths=vehicle_paths)
 
     def _multi_view_understand(self,
                                simple_report_list: list,
@@ -255,14 +257,20 @@ class CloudSolver:
 
         # 2. 云端下发广播，所有车辆返回自身的 agent_card
         agent_cards = self._get_agent_cards(parse_user_prompt_vo.location, is_log)
+
+        # 初始化地图模拟器：车辆坐标映射，添加目标点
         agent_card_models = self._init_map_simulator(parse_user_prompt_vo.location, agent_cards, is_log)
 
-        is_continue = True
         final_report = None
+
+        # 3. 根据目标位置，搜索附近的车辆，直接获取历史记录
+        nearby_vehicle_id_set = self._get_nearby_vehicle_id_set()
+
+        is_continue = True
         iter_num = 0
         while is_continue and iter_num < self.max_iter_num:
 
-            # 3. 挑选最优的车辆执行任务
+            # 挑选最优的车辆执行任务
             best_vehicle_id_list = self._get_best_vehicle_id_list(agent_card_models, num_of_vehicles, is_log)
             if not best_vehicle_id_list:
                 raise Exception("没有找到合适的车辆执行任务")
@@ -306,7 +314,7 @@ class CloudSolver:
                                      for agent_card_model in agent_card_models
                                      if agent_card_model.car_id not in best_vehicle_id_set]
 
-                self.map_simulator.remove_vehicle(selected_vehicle_position)
+                map_simulator.remove_vehicle(selected_vehicle_position)
 
             iter_num += 1
 

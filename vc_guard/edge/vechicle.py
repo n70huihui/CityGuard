@@ -14,8 +14,10 @@ from langchain_openai import ChatOpenAI
 
 from vc_guard.common.constants import VEHICLE_OBSERVATION_KEY, VEHICLE_SIMPLE_REPORT_KEY
 from vc_guard.common.models import HandleObservationVo
+from vc_guard.globals.grid import map_simulator
 from vc_guard.globals.memory import long_term_memory_store
-from vc_guard.observations.handlers import BaseObservationHandler, SimpleImageObservationHandler
+from vc_guard.observations.handlers import BaseObservationHandler, MapImageObservationHandler
+
 
 @dataclass
 class AgentCard:
@@ -44,7 +46,7 @@ class Vehicle:
     """
     车辆类，用于模拟车辆，每一辆车内置 Agent
     """
-    def __init__(self, observation_handler: BaseObservationHandler = SimpleImageObservationHandler()):
+    def __init__(self, observation_handler: BaseObservationHandler = MapImageObservationHandler()):
         # 车辆属性赋值
         self.car_id: str = uuid.uuid4().__str__()
         self.location: tuple[float, float] = (random.uniform(-90, 90), random.uniform(-180, 180))
@@ -98,7 +100,7 @@ class Vehicle:
         self.is_working = True
 
         # 调用观测处理器处理观测
-        observation, timestamp = self.observation_handler.get_observation()
+        observation, timestamp = self.observation_handler.get_observation(map_simulator, self.location, "garbage", "1")
         simple_report = self.observation_handler.handle_observation(
             agent=self.agent,
             observation=observation,
