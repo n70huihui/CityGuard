@@ -11,6 +11,8 @@ from vc_guard.common.models import HandleObservationVo
 from langgraph.graph.state import CompiledStateGraph
 
 from vc_guard.common.prompts import handle_text_observation_template
+from vc_guard.grid.map import MapSimulator
+
 
 def get_project_root() -> Any:
     """
@@ -77,7 +79,6 @@ class BaseObservationHandler(ABC):
         """
         pass
 
-    @abstractmethod
     def handle_observation(self,
                            agent: CompiledStateGraph,
                            observation: str | list[str] | dict[str, object],
@@ -100,7 +101,70 @@ class BaseObservationHandler(ABC):
         :param car_direction: 车辆方向
         :return: 处理结果报告
         """
-        pass
+        # 提供车辆报告
+        prompt = handle_text_observation_template.format(
+            task_location=task_location,
+            task_description=task_description,
+            task_id=task_uuid,
+            car_id=car_id,
+            car_direction=car_direction,
+            observation_timestamp=timestamp
+        )
+
+        # 初始化消息正文
+        message_content = [
+            {"type": "text", "text": prompt.content}
+        ]
+
+        # 插入图片消息
+        for observation_item in observation:
+            message_content.append({
+                "type": "image",
+                "source_type": "base64",
+                "data": observation_item,
+                "mime_type": "image/jpeg"
+            })
+
+        inputs = {"messages": [HumanMessage(content=message_content)]}
+
+        response = agent.invoke(inputs, {"configurable": {"thread_id": task_uuid}})
+
+        return response["structured_response"]
+
+class MapImageObservationHandler(BaseObservationHandler):
+    """
+    地图图像观测处理器，处理单个栏目的内容
+    """
+    def _get_quadrant(self, current_x: int, current_y: int,
+                     target_x: int, target_y: int) -> int:
+        """
+        根据车辆坐标和目标点坐标确定所在象限
+        :param current_x: 车辆 X 坐标
+        :param current_y: 车辆 Y 坐标
+        :param target_x: 目标点 X 坐标
+        :param target_y: 目标点 Y 坐标
+        :return: 象限编号 (0-3)
+        """
+        if current_x >= target_x:
+            return 3 if current_y >= target_y else 0
+        else:
+            return 2 if current_y >= target_y else 1
+
+    def get_observation(self, *args) -> tuple[str | list[str] | dict[str, object], int]:
+        cars: list[str] = ['car1', 'car2', 'car3', 'car4']
+
+        map_simulator: MapSimulator = args[0]
+        current_x, current_y = args[1]
+        target_x, target_y = map_simulator.target_point
+
+        # 根据象限位置，获取观测
+        quadrant_idx = self._get_quadrant(current_x, current_y, target_x, target_y)
+        choice = cars[quadrant_idx]
+
+        print(choice)
+        base64_lst = file_image_to_base64(args[2], args[3], args[4], choice)
+
+        return base64_lst, int(time.time())
 
 class ImageObservationHandler(BaseObservationHandler):
     """
@@ -116,46 +180,6 @@ class ImageObservationHandler(BaseObservationHandler):
 
         return base64_lst, int(time.time())
 
-    def handle_observation(self,
-                           agent: CompiledStateGraph,
-                           observation: str | list[str] | dict[str, object],
-                           timestamp: int,
-                           task_location: str,
-                           task_description: str,
-                           task_uuid: str,
-                           car_id: str,
-                           car_direction: float
-                           ) -> HandleObservationVo:
-        # 提供车辆报告
-        prompt = handle_text_observation_template.format(
-            task_location=task_location,
-            task_description=task_description,
-            task_id=task_uuid,
-            car_id=car_id,
-            car_direction=car_direction,
-            observation_timestamp=timestamp
-        )
-
-        # 初始化消息正文
-        message_content = [
-            {"type": "text", "text": prompt.content}
-        ]
-
-        # 插入图片消息
-        for observation_item in observation:
-            message_content.append({
-                "type": "image",
-                "source_type": "base64",
-                "data": observation_item,
-                "mime_type": "image/jpeg"
-            })
-
-        inputs = {"messages": [HumanMessage(content=message_content)]}
-
-        response = agent.invoke(inputs, {"configurable": {"thread_id": task_uuid}})
-
-        return response["structured_response"]
-
 
 class SimpleImageObservationHandler(BaseObservationHandler):
     """
@@ -170,43 +194,3 @@ class SimpleImageObservationHandler(BaseObservationHandler):
         base64_lst = single_file_image_to_base64(choice)
 
         return base64_lst, int(time.time())
-
-    def handle_observation(self,
-                           agent: CompiledStateGraph,
-                           observation: str | list[str] | dict[str, object],
-                           timestamp: int,
-                           task_location: str,
-                           task_description: str, 
-                           task_uuid: str,
-                           car_id: str,
-                           car_direction: float
-                           ) -> HandleObservationVo:
-        # 提供车辆报告
-        prompt = handle_text_observation_template.format(
-            task_location=task_location,
-            task_description=task_description,
-            task_id=task_uuid,
-            car_id=car_id,
-            car_direction=car_direction,
-            observation_timestamp=timestamp
-        )
-
-        # 初始化消息正文
-        message_content = [
-            {"type": "text", "text": prompt.content}
-        ]
-
-        # 插入图片消息
-        for observation_item in observation:
-            message_content.append({
-                "type": "image",
-                "source_type": "base64",
-                "data": observation_item,
-                "mime_type": "image/jpeg"
-            })
-
-        inputs = {"messages": [HumanMessage(content=message_content)]}
-
-        response = agent.invoke(inputs, {"configurable": {"thread_id": task_uuid}})
-
-        return response["structured_response"]
