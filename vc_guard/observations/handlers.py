@@ -133,7 +133,7 @@ class BaseObservationHandler(ABC):
 
 class MapImageObservationHandler(BaseObservationHandler):
     """
-    地图图像观测处理器，处理单个栏目的内容
+    地图图像观测处理器
     """
     def _get_quadrant(self, current_x: int, current_y: int,
                      target_x: int, target_y: int) -> int:
