@@ -1,5 +1,4 @@
 import csv
-import os
 import random
 import uuid
 from abc import ABC, abstractmethod
@@ -12,15 +11,15 @@ from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 
 from vc_guard.common.constants import VEHICLE_SIMPLE_REPORT_KEY
-from vc_guard.common.models import HandleObservationVo, ParseUserPromptVo, SummaryVo
-from vc_guard.common.prompts import parse_user_prompt_template, multi_view_understanding_summary_template
+from vc_guard.common.models import HandleObservationVo, ParseUserPromptVo, SummaryVo, BestVehicleListVo
+from vc_guard.common.prompts import parse_user_prompt_template, multi_view_understanding_summary_template, \
+    get_best_vehicle_id_list_template
 from vc_guard.globals.executor import vehicle_executor
 from vc_guard.globals.grid import map_simulator
 from vc_guard.globals.memory import long_term_memory_store
 from vc_guard.grid.map import MapSimulator, get_quadrant
 from vc_guard.observations.handlers import get_project_root, BaseObservationHandler, SimpleImageObservationHandler, \
     ImageObservationHandler, MapImageObservationHandler
-
 
 class ExperimentVehicle:
     """
@@ -33,13 +32,15 @@ class ExperimentVehicle:
         self.observation_handler = ImageObservationHandler()  # 车辆观测处理器
         self.location: tuple[int, int] = (random.randint(0, map_height), random.randint(0, map_width))
         self.speed: float = random.uniform(30, 60)
-        self.direction: float = random.uniform(0, 360)
         # 车辆内置 Agent
         self.agent = create_agent(
             model=ChatOpenAI(api_key=api_key, base_url=base_url, model=visual_model),
             tools=[],
             response_format=ToolStrategy(HandleObservationVo)
         )
+
+    def __repr__(self):
+        return f"Vehicle(id={self.car_id}, location={self.location}, speed={self.speed}, direction={self.direction})"
 
     def set_observation_handler(self, observation_handler: BaseObservationHandler):
         self.observation_handler = observation_handler
@@ -310,6 +311,37 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
         """
         return ["type_name", "file_id", "summary1", "summary2"]
 
+    def _get_best_vehicle_id_list(self,
+                                  num_of_vehicles: int,
+                                  agent_card_dict: dict,
+                                  quadrants: set[int],
+                                  is_log: bool) -> BestVehicleListVo:
+        # 使用大模型筛选车辆
+        agent = create_agent(model=self.llm, tools=[], response_format=ToolStrategy(BestVehicleListVo))
+
+        prompt = get_best_vehicle_id_list_template.format(
+            grid_matrix=map_simulator.grid_matrix,
+            observed_quadrant=quadrants,
+            task_location=map_simulator.target_point,
+            num_of_vehicles=num_of_vehicles,
+            agent_card_models=agent_card_dict.values()
+        )
+
+        response = agent.invoke({"messages": [prompt]})
+
+        # 拿到最优车辆的 id 列表
+        best_vehicle_id_list_vo: BestVehicleListVo = response["structured_response"]
+
+        if is_log:
+            print(f"get_best_vehicle_id_list ===> ")
+            print(f"observed_quadrant: {quadrants}")
+            print(f"best_vehicle_id_list: {best_vehicle_id_list_vo.best_vehicle_id_list}")
+            print(f"best_vehicle_position_list: {best_vehicle_id_list_vo.best_vehicle_target_points_list}")
+            print(f"get_best_vehicle_id_list <===")
+            print()
+
+        return best_vehicle_id_list_vo
+
     def _run_single_experiment(self,
                                task_uuid: str,
                                map_simulator: MapSimulator,
@@ -318,7 +350,7 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
                                type_name: str,
                                file_id: int,
                                task_description: str,
-                               task_location: str) -> str:
+                               task_location: str) -> tuple[str, str]:
         # 拿到附近车辆的 id - 位置字典
         nearby_vehicle_id_position_dict: dict[str, tuple[int, int]] = map_simulator.get_nearby_vehicle_id_position_dict(nearby_radius)
 
@@ -327,8 +359,6 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
         for car_id, position in nearby_vehicle_id_position_dict.items():
             quadrants.add(
                 get_quadrant(position[0], position[1], map_simulator.target_point[0], map_simulator.target_point[1]))
-
-        final_report = None
 
         # 附近车辆报告
         vehicle_executor.execute_tasks(
@@ -340,14 +370,46 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
 
         simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
 
-        summaryVo = self._multi_view_understand(
+        summaryVo1 = self._multi_view_understand(
             simple_report_list=simple_report_list,
             task_description=task_description,
             task_uuid=task_uuid,
-            is_log=True
+            is_log=False
         )
 
-        return summaryVo.summary
+        summary1 = summaryVo1.summary
+
+        # 移除车辆
+        for car_id in nearby_vehicle_id_position_dict.keys():
+            del experiment_vehicles_dict[car_id]
+
+        # 主动调度
+        best_vehicle_vo = self._get_best_vehicle_id_list(self.num_vehicles, experiment_vehicles_dict, quadrants, True)
+        best_vehicle_id_list = best_vehicle_vo.best_vehicle_id_list
+        best_vehicle_target_list = best_vehicle_vo.best_vehicle_target_points_list
+
+        for car_id, car_position in zip(best_vehicle_id_list, best_vehicle_target_list):
+            experiment_vehicles_dict[car_id].location = car_position
+
+        vehicle_executor.execute_tasks(
+            vehicle_list=experiment_vehicles_dict.values(),
+            best_vehicle_id_set=set(best_vehicle_id_list),
+            method_name='execute_map_task',
+            args=(map_simulator, task_location, task_description, task_uuid, type_name, str(file_id), False)
+        )
+
+        simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
+
+        summaryVo2 = self._multi_view_understand(
+            simple_report_list=simple_report_list,
+            task_description=task_description,
+            task_uuid=task_uuid,
+            is_log=False
+        )
+
+        summary2 = summaryVo2.summary
+
+        return summary1, summary2
 
     def run_experiment(self, start_idx: int) -> None:
         # 解析用户输入
@@ -369,12 +431,13 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
 
         # TODO 先串行执行所有任务
         for i in range(start_idx, total_cnt + 1):
+            print(i)
             # 创建地图模拟器
             map_simulator = MapSimulator(width=30, height=30)
 
             # 创建车辆列表，拼接车辆字典
             observation_handler = MapImageObservationHandler()
-            experiment_vehicles = [ExperimentVehicle() for _ in range(20)]
+            experiment_vehicles = [ExperimentVehicle() for _ in range(17)]
             experiment_vehicles_dict = {}
             for vehicle in experiment_vehicles:
                 vehicle.observation_handler = observation_handler
@@ -384,14 +447,14 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
             map_simulator.add_vehicle_id_position(experiment_vehicles_dict)
             map_simulator.add_target_point((15, 15))
 
-            map_simulator.visualize()
+            # map_simulator.visualize()
 
             task_uuid = "task-" + str(uuid.uuid4()).replace("-", "")
 
-            summary = self._run_single_experiment(
+            summary1, summary2 = self._run_single_experiment(
                 task_uuid,
                 map_simulator,
-                5,
+                3,
                 experiment_vehicles_dict,
                 self.type_name,
                 i,
@@ -399,11 +462,14 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
                 task_location
             )
 
+            print(summary1)
+            print(summary2)
+
             result = {
                 "type_name": self.type_name,
                 "file_id": str(i),
-                "summary1": summary,
-                "summary2": "null"
+                "summary1": summary1,
+                "summary2": summary2
             }
 
             self._save_to_csv([result])
@@ -416,7 +482,7 @@ if __name__ == "__main__":
     # 经市民举报，长沙市岳麓区阜埠河路附近道路出现拥挤，行人和机动车相互穿插，道路拥堵。
     # 经市民举报，长沙市岳麓区阜埠河路附近道路出现积水情况，请分析根因。
     user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近存在较大异味，请查询根因。"
-    output_csv = "unactive_garbage_output.csv"
+    output_csv = "active_garbage_output.csv"
     type_name = "garbage"
     num_vehicles = 2
 
