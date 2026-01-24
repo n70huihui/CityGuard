@@ -24,7 +24,8 @@ class BatchLLMJudge:
         self.batch_size = batch_size
         self.start_idx = start_idx
 
-        self.fieldnames = ['type_name', 'file_id', 'score']
+        # self.fieldnames = ['type_name', 'file_id', 'score']
+        self.fieldnames = ['type_name', 'file_id', 'score1', 'score2']
 
         self.type_name_answer = {
             "garbage": "路段周围垃圾违规堆放造成异味。",
@@ -103,6 +104,29 @@ class BatchLLMJudge:
 
         return score
 
+    def _process_batch_active(self, batch: list[dict]):
+        evaluated_batch = []
+
+        for row in batch:
+            # 调用评估函数时传入type_name
+            score1 = self._evaluate_summary(
+                type_name=row['type_name'],
+                summary=row.get('summary1', '')
+            )
+            score2 = self._evaluate_summary(
+                type_name=row['type_name'],
+                summary=row.get('summary2', '')
+            )
+
+            evaluated_batch.append({
+                'type_name': row['type_name'],
+                'file_id': row['file_id'],
+                'score1': score1,
+                'score2': score2
+            })
+
+        return evaluated_batch
+
     def _process_batch(self, batch: list[dict]):
         """
         处理单个批次的数据
@@ -146,7 +170,8 @@ class BatchLLMJudge:
             print(f"开始处理，跳过前 {actual_start_idx} 行数据")
 
         for i, batch in enumerate(self._read_batches(), 1):
-            evaluated_batch = self._process_batch(batch)
+            # evaluated_batch = self._process_batch(batch)
+            evaluated_batch = self._process_batch_active(batch)
             self._save_batch(evaluated_batch)
 
             total_batches = i
@@ -162,8 +187,8 @@ class BatchLLMJudge:
 
 
 if __name__ == '__main__':
-    input_csv = '../../results/executor/road_occupation_for_business_and_construction/multi_vehicle_road_occupation_for_business_and_construction_output.csv'
-    output_csv = 'multi_vehicle_road_occupation_for_business_and_construction_evaluation.csv'
+    input_csv = '../../results/executor/active/active_waste_incineration_output.csv'
+    output_csv = 'active_waste_incineration_evaluation.csv'
     batch_size = 5
 
     # start_idx = 100

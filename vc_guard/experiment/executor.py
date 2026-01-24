@@ -437,7 +437,7 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
 
             # 创建车辆列表，拼接车辆字典
             observation_handler = MapImageObservationHandler()
-            experiment_vehicles = [ExperimentVehicle() for _ in range(17)]
+            experiment_vehicles = [ExperimentVehicle() for _ in range(15)]
             experiment_vehicles_dict = {}
             for vehicle in experiment_vehicles:
                 vehicle.observation_handler = observation_handler
@@ -479,11 +479,11 @@ if __name__ == "__main__":
     # 经市民举报，长沙市岳麓区阜埠河路附近机动车道拥挤，有时伴有行人通过，请查询根因。
     # 经市民举报，长沙市岳麓区阜埠河路附近消防车拥堵，无法及时赶到火灾现场，请分析根因。
     # 经市民举报，长沙市岳麓区阜埠河路附近出现大量烟雾，味道刺鼻，且阻挡驾驶视野，请分析根因。
-    # 经市民举报，长沙市岳麓区阜埠河路附近道路出现拥挤，行人和机动车相互穿插，道路拥堵。
+    # 经市民举报，长沙市岳麓区阜埠河路附近道路出现拥挤，行人和机动车相互穿插，道路拥堵，请分析根因。
     # 经市民举报，长沙市岳麓区阜埠河路附近道路出现积水情况，请分析根因。
-    user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近存在较大异味，请查询根因。"
-    output_csv = "active_garbage_output.csv"
-    type_name = "garbage"
+    user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近道路出现积水情况，请分析根因。"
+    output_csv = "active_fallen_leaves_and_accumulated_water_output.csv"
+    type_name = "fallen_leaves_and_accumulated_water"
     num_vehicles = 2
 
     # executor = SingleAndMultiViewExperiment(user_prompt, output_csv, type_name, num_vehicles)
