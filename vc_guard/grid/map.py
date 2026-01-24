@@ -106,7 +106,7 @@ class MapSimulator:
         """
         return self.grid_matrix
 
-    def add_vehicle_id_position(self, agent_card_dict) -> None:
+    def add_vehicle_id_position(self, agent_card_dict: dict) -> None:
         """
         添加车辆信息
         :param agent_card_dict: 车辆 id - 车辆信息字典

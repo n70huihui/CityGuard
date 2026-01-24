@@ -370,7 +370,7 @@ class CloudSolver:
                 # 模拟车辆到达预设地点
                 for vehicle in vehicles:
                     if vehicle.car_id == vehicle_id:
-                        vehicle.map_location = target
+                        vehicle.location = target
                 quadrant_idx = get_quadrant(target[0], target[1], map_simulator.target_point[0], map_simulator.target_point[1])
                 quadrants.add(quadrant_idx)
 
