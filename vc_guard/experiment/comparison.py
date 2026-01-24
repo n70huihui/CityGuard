@@ -1,78 +1,158 @@
 from vc_guard.observations.handlers import get_project_root
-
-files = [
-    ('bike_illegal_parking', 'multi', 'results/evaluation/bike_illegal_parking/multi_vehicle_bike_illegal_parking_evaluation.csv'),
-    ('bike_illegal_parking', 'single', 'results/evaluation/bike_illegal_parking/single_vehicle_bike_illegal_parking_evaluation.csv'),
-    ('garbage', 'multi', 'results/evaluation/garbage/multi_vehicle_evaluation.csv'),
-    ('garbage', 'single', 'results/evaluation/garbage/single_vehicle_evaluation.csv'),
-    ('illegal_parking', 'multi', 'results/evaluation/illegal_parking/multi_vehicle_illegal_parking_evaluation.csv'),
-    ('illegal_parking', 'single', 'results/evaluation/illegal_parking/single_vehicle_illegal_parking_evaluation.csv'),
-    ('waste_incineration', 'multi', 'results/evaluation/waste_incineration/multi_vehicle_waste_incineration_evaluation.csv'),
-    ('waste_incineration', 'single', 'results/evaluation/waste_incineration/single_vehicle_waste_incineration_evaluation.csv'),
-    ('fallen_leaves_and_accumulated_water', 'single', 'results/evaluation/fallen_leaves_and_accumulated_water/single_vehicle_fallen_leaves_and_accumulated_water_evaluation.csv'),
-    ('fallen_leaves_and_accumulated_water', 'multi', 'results/evaluation/fallen_leaves_and_accumulated_water/multi_vehicle_fallen_leaves_and_accumulated_water_evaluation.csv'),
-    ('road_occupation_for_business_and_construction', 'single', 'results/evaluation/road_occupation_for_business_and_construction/single_vehicle_road_occupation_for_business_and_construction_evaluation.csv'),
-    ('road_occupation_for_business_and_construction', 'multi', 'results/evaluation/road_occupation_for_business_and_construction/multi_vehicle_road_occupation_for_business_and_construction_evaluation.csv'),
-]
-
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-# 设置项目根目录
-BASE_DIR = get_project_root()
+def single_view_vs_multi_view():
+    files = [
+        ('bike_illegal_parking', 'multi', 'results/evaluation/bike_illegal_parking/multi_vehicle_bike_illegal_parking_evaluation.csv'),
+        ('bike_illegal_parking', 'single', 'results/evaluation/bike_illegal_parking/single_vehicle_bike_illegal_parking_evaluation.csv'),
+        ('garbage', 'multi', 'results/evaluation/garbage/multi_vehicle_evaluation.csv'),
+        ('garbage', 'single', 'results/evaluation/garbage/single_vehicle_evaluation.csv'),
+        ('illegal_parking', 'multi', 'results/evaluation/illegal_parking/multi_vehicle_illegal_parking_evaluation.csv'),
+        ('illegal_parking', 'single', 'results/evaluation/illegal_parking/single_vehicle_illegal_parking_evaluation.csv'),
+        ('waste_incineration', 'multi', 'results/evaluation/waste_incineration/multi_vehicle_waste_incineration_evaluation.csv'),
+        ('waste_incineration', 'single', 'results/evaluation/waste_incineration/single_vehicle_waste_incineration_evaluation.csv'),
+        ('fallen_leaves_and_accumulated_water', 'single', 'results/evaluation/fallen_leaves_and_accumulated_water/single_vehicle_fallen_leaves_and_accumulated_water_evaluation.csv'),
+        ('fallen_leaves_and_accumulated_water', 'multi', 'results/evaluation/fallen_leaves_and_accumulated_water/multi_vehicle_fallen_leaves_and_accumulated_water_evaluation.csv'),
+        ('road_occupation_for_business_and_construction', 'single', 'results/evaluation/road_occupation_for_business_and_construction/single_vehicle_road_occupation_for_business_and_construction_evaluation.csv'),
+        ('road_occupation_for_business_and_construction', 'multi', 'results/evaluation/road_occupation_for_business_and_construction/multi_vehicle_road_occupation_for_business_and_construction_evaluation.csv'),
+    ]
 
-# 1. 读取并合并所有数据
-all_data = []
-for violation_type, perspective, rel_path in files:
-    file_path = os.path.join(BASE_DIR, rel_path)
-    try:
-        df = pd.read_csv(file_path)
-        df['perspective'] = perspective
-        df['violation_type'] = violation_type
-        all_data.append(df)
-    except FileNotFoundError:
-        print(f"文件未找到: {file_path}")
 
-combined_df = pd.concat(all_data)
 
-# 2. 创建4个子图
-fig, axs = plt.subplots(3, 2, figsize=(15, 15))
-fig.suptitle('single_view vs multi_view', fontsize=16)
+    # 设置项目根目录
+    BASE_DIR = get_project_root()
 
-# 违规类型列表
-violation_types = ['bike_illegal_parking', 'garbage',
-                   'illegal_parking', 'waste_incineration',
-                   'fallen_leaves_and_accumulated_water', 'road_occupation_for_business_and_construction']
+    # 1. 读取并合并所有数据
+    all_data = []
+    for violation_type, perspective, rel_path in files:
+        file_path = os.path.join(BASE_DIR, rel_path)
+        try:
+            df = pd.read_csv(file_path)
+            df['perspective'] = perspective
+            df['violation_type'] = violation_type
+            all_data.append(df)
+        except FileNotFoundError:
+            print(f"文件未找到: {file_path}")
 
-# 3. 绘制每个违规类型的箱线图
-for i, v_type in enumerate(violation_types):
-    ax = axs[i // 2, i % 2]
+    combined_df = pd.concat(all_data)
 
-    # 筛选当前类型的数据
-    type_data = combined_df[combined_df['violation_type'] == v_type]
+    # 2. 创建4个子图
+    fig, axs = plt.subplots(3, 2, figsize=(15, 15))
+    fig.suptitle('single_view vs multi_view', fontsize=16)
 
-    # 准备多视角和单视角数据
-    multi = type_data[type_data['perspective'] == 'multi']['score']
-    single = type_data[type_data['perspective'] == 'single']['score']
+    # 违规类型列表
+    violation_types = ['bike_illegal_parking', 'garbage',
+                       'illegal_parking', 'waste_incineration',
+                       'fallen_leaves_and_accumulated_water', 'road_occupation_for_business_and_construction']
 
-    # 绘制箱线图
-    bp = ax.boxplot([single, multi],
-                    patch_artist=True,
-                    labels=['single_view', 'multi_view'])
+    # 3. 绘制每个违规类型的箱线图
+    for i, v_type in enumerate(violation_types):
+        ax = axs[i // 2, i % 2]
 
-    # 设置颜色
-    colors = ['#1f77b4', '#ff7f0e']
-    for patch, color in zip(bp['boxes'], colors):
-        patch.set_facecolor(color)
+        # 筛选当前类型的数据
+        type_data = combined_df[combined_df['violation_type'] == v_type]
 
-    # 设置标题和标签
-    ax.set_title(f'{v_type.replace("_", " ").title()}')
-    ax.set_ylabel('score')
-    ax.grid(True, linestyle='--', alpha=0.7)
-    ax.set_ylim(0, 11)  # 统一Y轴范围
+        # 准备多视角和单视角数据
+        multi = type_data[type_data['perspective'] == 'multi']['score']
+        single = type_data[type_data['perspective'] == 'single']['score']
 
-# 4. 调整布局并保存
-plt.tight_layout(rect=[0, 0, 1, 0.96])  # 为总标题留空间
-plt.savefig('perspective_comparison.png', dpi=300)
-plt.show()
+        # 绘制箱线图
+        bp = ax.boxplot([single, multi],
+                        patch_artist=True,
+                        labels=['single_view', 'multi_view'])
+
+        # 设置颜色
+        colors = ['#1f77b4', '#ff7f0e']
+        for patch, color in zip(bp['boxes'], colors):
+            patch.set_facecolor(color)
+
+        # 设置标题和标签
+        ax.set_title(f'{v_type.replace("_", " ").title()}')
+        ax.set_ylabel('score')
+        ax.grid(True, linestyle='--', alpha=0.7)
+        ax.set_ylim(0, 11)  # 统一Y轴范围
+
+    # 4. 调整布局并保存
+    plt.tight_layout(rect=[0, 0, 1, 0.96])  # 为总标题留空间
+    plt.savefig('perspective_comparison.png', dpi=300)
+    plt.show()
+
+
+def inactive_vs_active():
+
+    BASE_DIR = get_project_root()
+
+    metrics = [
+        ('low_score_ratio', 'Low Score Ratio (<3)', lambda s: (s < 3).mean()),
+        ('high_score_ratio', 'High Score Ratio (>=7)', lambda s: (s >= 7).mean()),
+        ('mean_score', 'Mean Score', np.mean)
+    ]
+
+    active_files = [
+        ('Bike Parking', 'results/evaluation/active/active_bike_illegal_parking_evaluation.csv'),
+        ('Fallen Leaves', 'results/evaluation/active/active_fallen_leaves_and_accumulated_water_evaluation.csv'),
+        ('Garbage', 'results/evaluation/active/active_garbage_evaluation.csv'),
+        ('Illegal Parking', 'results/evaluation/active/active_illegal_parking_evaluation.csv'),
+        ('Road Occupation',
+         'results/evaluation/active/active_road_occupation_for_business_and_construction_evaluation.csv'),
+        ('Waste Incineration', 'results/evaluation/active/active_waste_incineration_evaluation.csv')
+    ]
+
+    results = []
+    for violation_type, file_path in active_files:
+        df = pd.read_csv(os.path.join(BASE_DIR, file_path))
+        for col in ['score1', 'score2']:
+            for metric_id, _, func in metrics:
+                value = func(df[col])
+                results.append({
+                    'violation_type': violation_type,
+                    'score_type': col,
+                    'metric': metric_id,
+                    'value': value
+                })
+
+    result_df = pd.DataFrame(results)
+
+    fig, axes = plt.subplots(3, 1, figsize=(12, 15))
+    fig.suptitle('Impact of Active Scheduling Module', fontsize=16)
+
+    for ax, (metric_id, metric_name, _) in zip(axes, metrics):
+        plot_data = result_df[result_df['metric'] == metric_id]
+        pivot_data = plot_data.pivot(
+            index='violation_type',
+            columns='score_type',
+            values='value'
+        ).reset_index()
+
+        pivot_data['improvement'] = pivot_data['score2'] - pivot_data['score1']
+
+        x = np.arange(len(pivot_data))
+        width = 0.35
+
+        rects1 = ax.bar(x - width / 2, pivot_data['score1'], width,
+                        label='Without Scheduling', color='#1f77b4')
+        rects2 = ax.bar(x + width / 2, pivot_data['score2'], width,
+                        label='With Scheduling', color='#ff7f0e')
+
+        for i, (_, row) in enumerate(pivot_data.iterrows()):
+            ax.text(i, max(row['score1'], row['score2']) + 0.05,
+                    f"+{row['improvement']:.2f}",
+                    ha='center', fontsize=9)
+
+        ax.set_title(metric_name)
+        ax.set_ylabel('Ratio' if 'ratio' in metric_id else 'Score')
+        ax.set_xticks(x)
+        ax.set_xticklabels(pivot_data['violation_type'])
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+        ax.legend()
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig('active_scheduling_impact.png', dpi=300)
+    plt.show()
+
+
+if __name__ == '__main__':
+    inactive_vs_active()
