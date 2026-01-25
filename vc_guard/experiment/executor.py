@@ -474,6 +474,207 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
 
             self._save_to_csv([result])
 
+class RandomAndQuadrantSchedulingExperiment(BatchExperimentExecutor):
+    """
+    随机调度和象限调度实验
+    """
+    def _get_csv_headers(self) -> list[str]:
+        return ["type_name", "file_id", "summary1", "summary2"]
+
+    def _get_best_vehicle_id_list(self,
+                                  num_of_vehicles: int,
+                                  agent_card_dict: dict,
+                                  quadrants: set[int],
+                                  is_log: bool) -> BestVehicleListVo:
+        target_point_lst = [(17, 13), (13, 13), (13, 17), (17, 17)]
+        bool_lst = [True, True, True, True]
+
+        for quadrant in quadrants:
+            bool_lst[quadrant] = False
+
+        final_point_lst = []
+        for point, b in zip(target_point_lst, bool_lst):
+            if b:
+                final_point_lst.append(point)
+
+
+        # 随机从 final_point_lst 里选两个元素出来
+        random_point_lst = random.sample(final_point_lst, num_of_vehicles)
+        # 随机从 agent_card_dict 里选两个元素出来
+        car_id_lst = list(agent_card_dict.keys())
+        random_agent_car_id_lst = random.sample(car_id_lst, num_of_vehicles)
+
+        # 拿到最优车辆的 id 列表
+        best_vehicle_id_list_vo: BestVehicleListVo = BestVehicleListVo(
+            best_vehicle_id_list=random_agent_car_id_lst,
+            best_vehicle_target_points_list=random_point_lst
+        )
+
+        if is_log:
+            print(f"get_best_vehicle_id_list ===> ")
+            print(f"observed_quadrant: {quadrants}")
+            print(f"best_vehicle_id_list: {best_vehicle_id_list_vo.best_vehicle_id_list}")
+            print(f"best_vehicle_position_list: {best_vehicle_id_list_vo.best_vehicle_target_points_list}")
+            print(f"get_best_vehicle_id_list <===")
+            print()
+
+        return best_vehicle_id_list_vo
+
+    def _run_single_experiment(self,
+                               task_uuid: str,
+                               map_simulator: MapSimulator,
+                               experiment_vehicles_dict: dict,
+                               type_name: str,
+                               file_id: int,
+                               task_description: str,
+                               task_location: str) -> tuple[str, str]:
+        # 保证只有随机一辆车来做历史观测
+        random_vehicle_id = random.choice(list(experiment_vehicles_dict.keys()))
+        position = experiment_vehicles_dict[random_vehicle_id].location
+
+        # 整理象限集合
+        quadrants = set()
+        quadrants.add(get_quadrant(position[0], position[1], map_simulator.target_point[0], map_simulator.target_point[1]))
+
+        # 附近车辆报告
+        print("random")
+        vehicle_executor.execute_tasks(
+            vehicle_list=experiment_vehicles_dict.values(),
+            best_vehicle_id_set={random_vehicle_id},
+            method_name='execute_map_task',
+            args=(map_simulator, task_location, task_description, task_uuid, type_name, str(file_id), False)
+        )
+
+        simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
+
+        # 拿到历史观测的报告
+        simple_summary = simple_report_list[-1]
+
+        random_vehicle_id_lst = []
+        # 随机调度
+        target_point_lst = [(17, 13), (13, 13), (13, 17), (17, 17)]
+        for _ in range(self.num_vehicles):
+            random_vehicle_id = random.choice(list(experiment_vehicles_dict.keys()))
+            random_vehicle_id_lst.append(random_vehicle_id)
+            position = random.choice(target_point_lst)
+            experiment_vehicles_dict[random_vehicle_id].location = position
+
+        vehicle_executor.execute_tasks(
+            vehicle_list=experiment_vehicles_dict.values(),
+            best_vehicle_id_set=set(random_vehicle_id_lst),
+            method_name='execute_map_task',
+            args=(map_simulator, task_location, task_description, task_uuid, type_name, str(file_id), False)
+        )
+
+        simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
+        # 拿到随机报告
+        random_report_list = simple_report_list[-self.num_vehicles:]
+        random_report_list.append(simple_summary)
+        # 多视角理解
+        summaryVo1 = self._multi_view_understand(
+            simple_report_list=random_report_list,
+            task_description=task_description,
+            task_uuid=task_uuid,
+            is_log=False
+        )
+        summary1 = summaryVo1.summary
+
+        for car_id in random_vehicle_id_lst:
+            del experiment_vehicles_dict[car_id]
+
+        # 主动调度
+        print("agent")
+        best_vehicle_vo = self._get_best_vehicle_id_list(self.num_vehicles, experiment_vehicles_dict, quadrants, True)
+        best_vehicle_id_list = best_vehicle_vo.best_vehicle_id_list
+        best_vehicle_target_list = best_vehicle_vo.best_vehicle_target_points_list
+
+        for car_id, car_position in zip(best_vehicle_id_list, best_vehicle_target_list):
+            experiment_vehicles_dict[car_id].location = car_position
+
+        vehicle_executor.execute_tasks(
+            vehicle_list=experiment_vehicles_dict.values(),
+            best_vehicle_id_set=set(best_vehicle_id_list),
+            method_name='execute_map_task',
+            args=(map_simulator, task_location, task_description, task_uuid, type_name, str(file_id), False)
+        )
+
+        simple_report_list = long_term_memory_store.get_list(VEHICLE_SIMPLE_REPORT_KEY.format(task_uuid=task_uuid))
+        simple_report_list = simple_report_list[-self.num_vehicles:]
+        simple_report_list.append(simple_summary)
+
+        summaryVo2 = self._multi_view_understand(
+            simple_report_list=simple_report_list,
+            task_description=task_description,
+            task_uuid=task_uuid,
+            is_log=False
+        )
+
+        summary2 = summaryVo2.summary
+
+        return summary1, summary2
+
+    def run_experiment(self, start_idx: int) -> None:
+        # 解析用户输入
+        parse_user_prompt_vo = self._parse_user_prompt()
+        task_location = parse_user_prompt_vo.task_location
+        task_description = self.user_prompt
+
+        # 获取数据集根目录
+        project_root = get_project_root()
+
+        # 拼接目标目录路径
+        dataset_path = os.path.join(project_root, "datasets")
+
+        # 获取整批次的数量
+        total_cnt = self._count_subdirectories(dataset_path)
+
+        # 初始化 csv 文件
+        self._int_csv()
+
+        # TODO 先串行执行所有任务
+        for i in range(start_idx, total_cnt + 1):
+            print(i)
+            # 创建地图模拟器
+            map_simulator = MapSimulator(width=30, height=30)
+
+            # 创建车辆列表，拼接车辆字典
+            observation_handler = MapImageObservationHandler()
+            experiment_vehicles = [ExperimentVehicle() for _ in range(15)]
+            experiment_vehicles_dict = {}
+            for vehicle in experiment_vehicles:
+                vehicle.observation_handler = observation_handler
+                experiment_vehicles_dict[vehicle.car_id] = vehicle
+
+            # 添加目标点
+            map_simulator.add_vehicle_id_position(experiment_vehicles_dict)
+            map_simulator.add_target_point((15, 15))
+
+            # map_simulator.visualize()
+
+            task_uuid = "task-" + str(uuid.uuid4()).replace("-", "")
+
+            summary1, summary2 = self._run_single_experiment(
+                task_uuid,
+                map_simulator,
+                experiment_vehicles_dict,
+                self.type_name,
+                i,
+                task_description,
+                task_location
+            )
+
+            print(summary1)
+            print(summary2)
+
+            result = {
+                "type_name": self.type_name,
+                "file_id": str(i),
+                "summary1": summary1,
+                "summary2": summary2
+            }
+
+            self._save_to_csv([result])
+
 if __name__ == "__main__":
     # 经市民举报，长沙市岳麓区阜埠河路附近存在较大异味，请查询根因。
     # 经市民举报，长沙市岳麓区阜埠河路附近机动车道拥挤，有时伴有行人通过，请查询根因。
@@ -481,11 +682,12 @@ if __name__ == "__main__":
     # 经市民举报，长沙市岳麓区阜埠河路附近出现大量烟雾，味道刺鼻，且阻挡驾驶视野，请分析根因。
     # 经市民举报，长沙市岳麓区阜埠河路附近道路出现拥挤，行人和机动车相互穿插，道路拥堵，请分析根因。
     # 经市民举报，长沙市岳麓区阜埠河路附近道路出现积水情况，请分析根因。
-    user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近道路出现积水情况，请分析根因。"
-    output_csv = "active_fallen_leaves_and_accumulated_water_output.csv"
-    type_name = "fallen_leaves_and_accumulated_water"
+    user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近消防车拥堵，无法及时赶到火灾现场，请分析根因。"
+    output_csv = "random_illegal_parking_output.csv"
+    type_name = "illegal_parking"
     num_vehicles = 2
 
     # executor = SingleAndMultiViewExperiment(user_prompt, output_csv, type_name, num_vehicles)
-    executor = ActiveSchedulingExperiment(user_prompt, output_csv, type_name, num_vehicles)
+    # executor = ActiveSchedulingExperiment(user_prompt, output_csv, type_name, num_vehicles)
+    executor = RandomAndQuadrantSchedulingExperiment(user_prompt, output_csv, type_name, num_vehicles)
     executor.run_experiment(start_idx=1)

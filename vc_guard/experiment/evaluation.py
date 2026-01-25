@@ -28,7 +28,7 @@ class BatchLLMJudge:
         self.fieldnames = ['type_name', 'file_id', 'score1', 'score2']
 
         self.type_name_answer = {
-            "garbage": "路段周围垃圾违规堆放造成异味。",
+            "garbage": "生活垃圾散落、堆放造成异味。",
             "bike_illegal_parking": "单车在非机动车道违规停放挤占盲道以及通行面积，进而造成行人走到机动车道，最终导致车辆拥堵。",
             "illegal_parking": "有轿车违规停放在消防专用通道上，导致消防车无法及时通行。",
             "waste_incineration": "路段周围存在垃圾、秸秆等废弃物焚烧现象，导致产生大量刺鼻烟雾。",
@@ -187,8 +187,8 @@ class BatchLLMJudge:
 
 
 if __name__ == '__main__':
-    input_csv = '../../results/executor/active/active_waste_incineration_output.csv'
-    output_csv = 'active_waste_incineration_evaluation.csv'
+    input_csv = '../../results/executor/quadrant/random_bike_illegal_parking_output.csv'
+    output_csv = 'random_bike_illegal_parking_evaluation.csv'
     batch_size = 5
 
     # start_idx = 100
