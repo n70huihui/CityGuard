@@ -580,7 +580,8 @@ class RandomAndQuadrantSchedulingExperiment(BatchExperimentExecutor):
         summary1 = summaryVo1.summary
 
         for car_id in random_vehicle_id_lst:
-            del experiment_vehicles_dict[car_id]
+            if car_id in experiment_vehicles_dict:
+                del experiment_vehicles_dict[car_id]
 
         # 主动调度
         print("agent")
@@ -682,9 +683,9 @@ if __name__ == "__main__":
     # 经市民举报，长沙市岳麓区阜埠河路附近出现大量烟雾，味道刺鼻，且阻挡驾驶视野，请分析根因。
     # 经市民举报，长沙市岳麓区阜埠河路附近道路出现拥挤，行人和机动车相互穿插，道路拥堵，请分析根因。
     # 经市民举报，长沙市岳麓区阜埠河路附近道路出现积水情况，请分析根因。
-    user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近消防车拥堵，无法及时赶到火灾现场，请分析根因。"
-    output_csv = "random_illegal_parking_output.csv"
-    type_name = "illegal_parking"
+    user_prompt = "经市民举报，长沙市岳麓区阜埠河路附近道路出现积水情况，请分析根因。"
+    output_csv = "random_fallen_leaves_and_accumulated_water_output.csv"
+    type_name = "fallen_leaves_and_accumulated_water"
     num_vehicles = 2
 
     # executor = SingleAndMultiViewExperiment(user_prompt, output_csv, type_name, num_vehicles)

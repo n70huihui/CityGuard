@@ -154,5 +154,118 @@ def inactive_vs_active():
     plt.show()
 
 
+def random_vs_quadrant():
+    """
+    比较随机调车与象限调车的性能差异
+    使用两个关键指标展示象限调车的优越性：
+    1. 平均得分对比
+    2. 高优化率（提升超过2分）的比例
+    """
+    BASE_DIR = get_project_root()
+
+    # 定义文件路径
+    files = [
+        ('Fallen Leaves', 'results/evaluation/quadrant/fallen_leaves_and_accumulated_water_evaluation.csv'),
+        ('Bike Parking', 'results/evaluation/quadrant/random_bike_illegal_parking_evaluation.csv'),
+        ('Garbage', 'results/evaluation/quadrant/random_garbage_evaluation.csv'),
+        ('Illegal Parking', 'results/evaluation/quadrant/random_illegal_parking_evaluation.csv'),
+        ('Road Occupation',
+         'results/evaluation/quadrant/random_road_occupation_for_business_and_construction_evaluation.csv'),
+        ('Waste Incineration', 'results/evaluation/quadrant/random_waste_incineration_evaluation.csv')
+    ]
+
+    # 存储每个违规类型的结果
+    results = []
+
+    for violation_type, rel_path in files:
+        file_path = os.path.join(BASE_DIR, rel_path)
+        try:
+            df = pd.read_csv(file_path)
+            # 计算关键指标
+            improvement = df['score2'] - df['score1']
+
+            # 高优化率 (improvement > 2)
+            high_improvement_ratio = (improvement > 2).mean()
+
+            # 存储结果
+            results.append({
+                'violation_type': violation_type,
+                'mean_random': df['score1'].mean(),
+                'mean_quadrant': df['score2'].mean(),
+                'mean_improvement': improvement.mean(),
+                'high_improvement_ratio': high_improvement_ratio
+            })
+
+        except FileNotFoundError:
+            print(f"File not found: {file_path}")
+        except KeyError:
+            print(f"Columns 'score1' or 'score2' not found in {file_path}")
+
+    if not results:
+        print("No valid data found")
+        return
+
+    result_df = pd.DataFrame(results)
+
+    # 创建图表（1行2列）
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    fig.suptitle('Random vs Quadrant Scheduling Performance Comparison', fontsize=16)
+
+    # 子图1: 平均得分对比
+    x = np.arange(len(result_df))
+    width = 0.35
+
+    # 绘制随机调度和象限调度的平均得分柱状图
+    ax1.bar(x - width / 2, result_df['mean_random'], width,
+            label='Random Scheduling', color='#1f77b4', alpha=0.8)
+    ax1.bar(x + width / 2, result_df['mean_quadrant'], width,
+            label='Quadrant Scheduling', color='#ff7f0e', alpha=0.8)
+
+    # 添加优化值标签
+    for i, row in result_df.iterrows():
+        y_pos = max(row['mean_random'], row['mean_quadrant']) + 0.1
+        ax1.text(i, y_pos, f"+{row['mean_improvement']:.2f}",
+                 ha='center', fontsize=10, fontweight='bold')
+
+    # 设置图表属性
+    ax1.set_title('Average Score Comparison', fontsize=14)
+    ax1.set_ylabel('Average Score', fontsize=12)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(result_df['violation_type'], rotation=15, ha='right')
+    ax1.grid(axis='y', linestyle='--', alpha=0.5)
+    ax1.legend(frameon=True, loc='best')
+
+    # 添加水平参考线
+    ax1.axhline(y=7.5, color='gray', linestyle='--', alpha=0.3)
+    ax1.axhline(y=5.0, color='gray', linestyle='--', alpha=0.3)
+
+    # 子图2: 高优化率对比
+    # 绘制高优化率柱状图
+    bars = ax2.bar(result_df['violation_type'],
+                   result_df['high_improvement_ratio'] * 100,
+                   color='#2ca02c', alpha=0.8)
+
+    # 在每个柱子上添加百分比标签
+    for bar in bars:
+        height = bar.get_height()
+        ax2.text(bar.get_x() + bar.get_width() / 2., height + 1,
+                 f'{height:.1f}%', ha='center', va='bottom', fontsize=10)
+
+    # 设置图表属性
+    ax2.set_title('High Improvement Rate (>2 points)', fontsize=14)
+    ax2.set_ylabel('Percentage (%)', fontsize=12)
+    ax2.set_xticklabels(result_df['violation_type'], rotation=15, ha='right')
+    ax2.grid(axis='y', linestyle='--', alpha=0.5)
+
+    # 添加水平参考线
+    ax2.axhline(y=30, color='gray', linestyle='--', alpha=0.3)
+    ax2.axhline(y=50, color='gray', linestyle='--', alpha=0.3)
+
+    # 调整布局并保存
+    plt.tight_layout(rect=[0, 0, 1, 0.96])  # 为总标题留空间
+    plt.savefig('quadrant_scheduling_comparison.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+
 if __name__ == '__main__':
-    inactive_vs_active()
+    random_vs_quadrant()

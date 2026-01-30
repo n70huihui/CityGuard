@@ -187,8 +187,8 @@ class BatchLLMJudge:
 
 
 if __name__ == '__main__':
-    input_csv = '../../results/executor/quadrant/random_bike_illegal_parking_output.csv'
-    output_csv = 'random_bike_illegal_parking_evaluation.csv'
+    input_csv = '../../results/executor/quadrant/random_fallen_leaves_and_accumulated_water_output.csv'
+    output_csv = 'fallen_leaves_and_accumulated_water_evaluation.csv'
     batch_size = 5
 
     # start_idx = 100
