@@ -1,12 +1,14 @@
 import base64
 import json
 from collections import defaultdict
+from dataclasses import dataclass
 
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import ToolRuntime
 
 from env_utils.llm_args import *
 from guard.common.model import Monitor, MonitorReport, Camera, CameraReport, RootAnalyzeData
@@ -54,15 +56,26 @@ model=ChatOpenAI(model=visual_model, base_url=base_url, api_key=api_key),
     response_format=ToolStrategy(CameraReport)
 )
 
+
+@dataclass
+class PlannerContext:
+    """规划器工具调用上下文"""
+    type_name: str
+    id: int
+
 @tool
-def get_monitor_report(monitor_name: str, task_description: str) -> MonitorReport:
+def get_monitor_report(monitor_name: str, task_description: str, runtime: ToolRuntime[PlannerContext]) -> MonitorReport:
     """
     获取监控视角对应的分析报告
     :param monitor_name: 监控名称
     :param task_description: 市民举报信息
+    :param runtime: 工具运行时上下文
     :return: 监控视角分析报告
     """
     print(f"get_monitor_info: {monitor_name}")
+    # 提取举报类型
+    type_name = runtime.context.type_name
+
     # 提取监控编号
     monitor_id = monitor_name.split('_')[1]
 
@@ -99,14 +112,18 @@ def get_monitor_report(monitor_name: str, task_description: str) -> MonitorRepor
     return response["structured_response"]
 
 @tool
-def get_camera_report(camera_area: str, task_description: str) -> CameraReport:
+def get_camera_report(camera_area: str, task_description: str, runtime: ToolRuntime[PlannerContext]) -> CameraReport:
     """
     获取车载摄像头视角对应的分析报告
     :param camera_area: 车载摄像头所在的区域，示例：area_1
     :param task_description: 市民举报信息
+    :param runtime: 工具运行时上下文
     :return: 车载摄像头视角分析报告
     """
     print(f"get_camera_report:{camera_area}")
+    # 拿到类型信息
+    type_name = runtime.context.type_name
+
     # 拿到当前区域的摄像头列表
     camera_lst = area_camera_dict[camera_area]
     camera_content_lst = []

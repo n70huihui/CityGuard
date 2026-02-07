@@ -30,9 +30,6 @@ area_7, road_1_3, area_8, road_2_3, area_9;
    - 如果 road 上的情况和举报内容或根因分析的内容毫无关系，则扩大调查范围，调取其他监控。
    - 如果 road 上的情况能直接分析出根因，则返回结果。
    - 如果 road 上的内容和举报内容相关，但还没有充足证据支撑根因分析，可以尝试优先调取车载视角来查看对应道路附近 area 发生的事情。
-   
-## 任务信息
-市民举报如下：{task_description}。
 """)
 
 monitor_executor_sys_prompt = SystemMessagePromptTemplate.from_template("""
