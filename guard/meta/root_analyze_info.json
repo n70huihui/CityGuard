@@ -1,0 +1,64 @@
+{
+  "garbage": [
+    {
+      "type_name": "garbage",
+      "id": 1,
+      "user_prompt": "在road_1_1闻到刺鼻异味",
+      "root_cause": "area_1区域内垃圾违规堆放，导致异味扩散至road_1_1"
+    },
+    {
+      "type_name": "garbage",
+      "id": 2,
+      "user_prompt": "area_1 区域内持续闻到类似腐烂果蔬的酸臭味",
+      "root_cause": "road_3_1 道路旁违规堆积大量垃圾，异味随风扩散至 area_1"
+    },
+    {
+      "type_name": "garbage",
+      "id": 3,
+      "user_prompt": "road_3_3附近异味严重",
+      "root_cause": "area_3处垃圾违规堆放，影响road_3_3空气质量"
+    },
+    {
+      "type_name": "garbage",
+      "id": 4,
+      "user_prompt": "在road_1_2闻到垃圾臭味",
+      "root_cause": "area_4区域内垃圾未及时清理，异味传播至road_1_2"
+    },
+    {
+      "type_name": "garbage",
+      "id": 5,
+      "user_prompt": "area_5 周边常有刺鼻异味",
+      "root_cause": "road_4_2 存在垃圾违规堆放，气体飘散至 area_5"
+    },
+    {
+      "type_name": "garbage",
+      "id": 6,
+      "user_prompt": "在road_4_3处气味难闻",
+      "root_cause": "area_6区域垃圾暴露，臭味扩散到road_4_3"
+    },
+    {
+      "type_name": "garbage",
+      "id": 7,
+      "user_prompt": "road_4_1附近夜间异味明显",
+      "root_cause": "area_7垃圾收集点违规，影响road_4_1周边环境"
+    },
+    {
+      "type_name": "garbage",
+      "id": 8,
+      "user_prompt": "在road_1_3闻到发酵臭味",
+      "root_cause": "area_8处垃圾堆积发酵，造成road_1_3空气污染"
+    },
+    {
+      "type_name": "garbage",
+      "id": 9,
+      "user_prompt": "area_9 常有难闻的臭味",
+      "root_cause": "road_1_3 垃圾散发臭味至 area_9"
+    },
+    {
+      "type_name": "garbage",
+      "id": 10,
+      "user_prompt": "在road_3_1感觉到恶臭",
+      "root_cause": "area_1区域垃圾处理不当，恶臭扩散至road_3_1"
+    }
+  ]
+}

@@ -26,3 +26,10 @@ class CameraReport(BaseModel):
     camera_location_lst: list[str] = Field(description="摄像头具体位置")
     camera_content_lst: list[str] = Field(description="摄像头画面内容")
     camera_report_lst: list[str] = Field(description="摄像头视角分析报告")
+
+class RootAnalyzeData(BaseModel):
+    """根因分析数据"""
+    type_name: str = Field(description="类型名称")
+    id: int = Field(description="id 编号")
+    user_prompt: str = Field(description="用户提示词")
+    root_cause: str = Field(description="根因")
