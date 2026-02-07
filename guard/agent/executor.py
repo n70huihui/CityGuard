@@ -9,7 +9,7 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
 from env_utils.llm_args import *
-from guard.common.model import Monitor, MonitorReport, Camera, CameraReport
+from guard.common.model import Monitor, MonitorReport, Camera, CameraReport, RootAnalyzeData
 from guard.common.prompt import monitor_executor_sys_prompt, camera_executor_sys_prompt
 
 
@@ -31,8 +31,16 @@ def load_cameras(file_path: str) -> tuple[dict[str, Camera], dict[str, list[Came
         area_camera_dict[camera.camera_area].append(camera)
     return name_camera_dict, area_camera_dict
 
+def load_root_analyze_info(file_path: str) -> dict[str, list[RootAnalyzeData]]:
+    """加载根因分析信息"""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    return {key: [RootAnalyzeData(**root_analyze_data_dict) for root_analyze_data_dict in root_analyze_data_lst] for key, root_analyze_data_lst in data.items()}
+
 monitors = load_monitors('../meta/monitor_info.json')
 name_camera_dict, area_camera_dict = load_cameras('../meta/camera_info.json')
+root_analyze_info = load_root_analyze_info('../meta/root_analyze_info.json')
 
 monitor_executor = create_agent(
     model=ChatOpenAI(model=visual_model, base_url=base_url, api_key=api_key),
@@ -152,11 +160,5 @@ def get_camera_report(camera_area: str, task_description: str) -> CameraReport:
 
     return response["structured_response"]
 
-# if __name__ == '__main__':
-    # result = get_monitor_info("monitor_1", "road_1_1 附近有噪音")
-    # print(result)
-    # print(name_camera_dict)
-    # for lst in area_camera_dict.values():
-    #     print(len(lst))
-    # result = get_camera_report("area_1", "road_1_1 附近有异味")
-    # print(result)
+if __name__ == '__main__':
+    print(root_analyze_info)
