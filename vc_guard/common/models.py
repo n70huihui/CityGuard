@@ -1,14 +1,22 @@
 from pydantic import BaseModel, Field
 
 """
-该文件存放整个 demo 项目所有的 LLM 输出模型
-变量名统一为 FunctionNameVo
+该文件存放整个项目所有的数据模型
 """
 
 class ParseUserPromptVo(BaseModel):
-    task_location: str = Field(description="位置地点")
-    location: tuple[float, float] = Field(description="位置经纬度")
-    task: str = Field(description="任务描述")
+    task_location: str = Field(description="位置地点描述")
+    task_description: str = Field(description="任务描述")
+
+class Task(BaseModel):
+    task_location: str = Field(description="位置地点描述")
+    task_description: str = Field(description="任务描述")
+    task_uuid: str = Field(description="任务 id")
+
+class DataUnit(BaseModel):
+    type_name: str = Field(description="数据类型名称")
+    file_id: str = Field(description="文件 id")
+    file_name: str = Field(description="文件名称")
 
 class BestVehicleListVo(BaseModel):
     best_vehicle_id_list: list[str] = Field(description="最优车辆 id 列表")

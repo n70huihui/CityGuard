@@ -15,7 +15,7 @@ from vc_guard.common.models import HandleObservationVo, ParseUserPromptVo, Summa
 from vc_guard.common.prompts import parse_user_prompt_template, multi_view_understanding_summary_template, \
     get_best_vehicle_id_list_template
 from vc_guard.globals.executor import vehicle_executor
-from vc_guard.globals.grid import map_simulator
+from vc_guard.globals.grid import grid_simulator
 from vc_guard.globals.memory import long_term_memory_store
 from vc_guard.grid.map import MapSimulator, get_quadrant
 from vc_guard.observations.handlers import get_project_root, BaseObservationHandler, SimpleImageObservationHandler, \
@@ -230,7 +230,7 @@ class SingleAndMultiViewExperiment(BatchExperimentExecutor):
         # 车辆先执行任务
         vehicle_executor.execute_tasks(
             vehicle_list=experiment_vehicles,
-            best_vehicle_id_set=experiment_vehicle_id_set,
+            vehicle_id_set=experiment_vehicle_id_set,
             method_name='execute_task',
             args=(task_location, task_description, task_uuid, dataset_path, self.type_name, str(file_id))
         )
@@ -320,9 +320,9 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
         agent = create_agent(model=self.llm, tools=[], response_format=ToolStrategy(BestVehicleListVo))
 
         prompt = get_best_vehicle_id_list_template.format(
-            grid_matrix=map_simulator.grid_matrix,
+            grid_matrix=grid_simulator.grid_matrix,
             observed_quadrant=quadrants,
-            task_location=map_simulator.target_point,
+            task_location=grid_simulator.target_point,
             num_of_vehicles=num_of_vehicles,
             agent_card_models=agent_card_dict.values()
         )
@@ -363,7 +363,7 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
         # 附近车辆报告
         vehicle_executor.execute_tasks(
             vehicle_list=experiment_vehicles_dict.values(),
-            best_vehicle_id_set=set(nearby_vehicle_id_position_dict.keys()),
+            vehicle_id_set=set(nearby_vehicle_id_position_dict.keys()),
             method_name='execute_map_task',
             args=(map_simulator, task_location, task_description, task_uuid, type_name, str(file_id), False)
         )
@@ -393,7 +393,7 @@ class ActiveSchedulingExperiment(BatchExperimentExecutor):
 
         vehicle_executor.execute_tasks(
             vehicle_list=experiment_vehicles_dict.values(),
-            best_vehicle_id_set=set(best_vehicle_id_list),
+            vehicle_id_set=set(best_vehicle_id_list),
             method_name='execute_map_task',
             args=(map_simulator, task_location, task_description, task_uuid, type_name, str(file_id), False)
         )
@@ -540,7 +540,7 @@ class RandomAndQuadrantSchedulingExperiment(BatchExperimentExecutor):
         print("random")
         vehicle_executor.execute_tasks(
             vehicle_list=experiment_vehicles_dict.values(),
-            best_vehicle_id_set={random_vehicle_id},
+            vehicle_id_set={random_vehicle_id},
             method_name='execute_map_task',
             args=(map_simulator, task_location, task_description, task_uuid, type_name, str(file_id), False)
         )
@@ -561,7 +561,7 @@ class RandomAndQuadrantSchedulingExperiment(BatchExperimentExecutor):
 
         vehicle_executor.execute_tasks(
             vehicle_list=experiment_vehicles_dict.values(),
-            best_vehicle_id_set=set(random_vehicle_id_lst),
+            vehicle_id_set=set(random_vehicle_id_lst),
             method_name='execute_map_task',
             args=(map_simulator, task_location, task_description, task_uuid, type_name, str(file_id), False)
         )
@@ -594,7 +594,7 @@ class RandomAndQuadrantSchedulingExperiment(BatchExperimentExecutor):
 
         vehicle_executor.execute_tasks(
             vehicle_list=experiment_vehicles_dict.values(),
-            best_vehicle_id_set=set(best_vehicle_id_list),
+            vehicle_id_set=set(best_vehicle_id_list),
             method_name='execute_map_task',
             args=(map_simulator, task_location, task_description, task_uuid, type_name, str(file_id), False)
         )

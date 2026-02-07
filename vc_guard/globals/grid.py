@@ -1,3 +1,3 @@
-from vc_guard.grid.map import MapSimulator
+from vc_guard.grid.simulator import GridSimulator
 
-map_simulator = MapSimulator(width=30, height=30)
+grid_simulator = GridSimulator(width=30, height=30)

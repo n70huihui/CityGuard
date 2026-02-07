@@ -1,0 +1,182 @@
+{
+    "area_1_camera_1": {
+        "camera_name": "area_1_camera_1",
+        "camera_area": "area_1",
+        "camera_location": "area_1 东边的 road_1_1 上"
+    },
+    "area_1_camera_2": {
+        "camera_name": "area_1_camera_2",
+        "camera_area": "area_1",
+        "camera_location": "area_1 里，东边草坪旁边的路径上"
+    },
+    "area_1_camera_3": {
+        "camera_name": "area_1_camera_3",
+        "camera_area": "area_1",
+        "camera_location": "area_1 里，南边草坪旁边的路径上"
+    },
+    "area_1_camera_4": {
+        "camera_name": "area_1_camera_4",
+        "camera_area": "area_1",
+        "camera_location": "area_1 里，西北角草坪旁边的路径上"
+    },
+    "area_1_camera_5": {
+        "camera_name": "area_1_camera_5",
+        "camera_area": "area_1",
+        "camera_location": "area_1 东北角的 road_1_1 上"
+    },
+    "area_2_camera_1": {
+        "camera_name": "area_2_camera_1",
+        "camera_area": "area_2",
+        "camera_location": "area_2 西边的 road_1_1 上"
+    },
+    "area_2_camera_2": {
+        "camera_name": "area_2_camera_2",
+        "camera_area": "area_2",
+        "camera_location": "area_2 里，南边草坪旁边的路径上"
+    },
+    "area_2_camera_3": {
+        "camera_name": "area_2_camera_3",
+        "camera_area": "area_2",
+        "camera_location": "area_2 里，东边两栋房屋中间的路径上"
+    },
+    "area_2_camera_4": {
+        "camera_name": "area_2_camera_4",
+        "camera_area": "area_2",
+        "camera_location": "area_2 里，西北角的 road_1_1 上"
+    },
+    "area_3_camera_1": {
+        "camera_name": "area_3_camera_1",
+        "camera_area": "area_3",
+        "camera_location": "area_2 西南角的 road_2_1 上"
+    },
+    "area_3_camera_2": {
+        "camera_name": "area_3_camera_2",
+        "camera_area": "area_3",
+        "camera_location": "area_3 里，南边草坪旁边的路径上"
+    },
+    "area_3_camera_3": {
+        "camera_name": "area_3_camera_3",
+        "camera_area": "area_3",
+        "camera_location": "area_3 北边两栋房屋中间的路径上"
+    },
+    "area_3_camera_4": {
+        "camera_name": "area_3_camera_4",
+        "camera_area": "area_3",
+        "camera_location": "area_3 东北边两栋房屋中间的路径上"
+    },
+    "area_3_camera_5": {
+        "camera_name": "area_3_camera_5",
+        "camera_area": "area_3",
+        "camera_location": "area_3 东边两栋房屋中间的路径上"
+    },
+    "area_4_camera_1": {
+        "camera_name": "area_4_camera_1",
+        "camera_area": "area_4",
+        "camera_location": "area_4 东边 road_1_2 上"
+    },
+    "area_4_camera_2": {
+        "camera_name": "area_4_camera_2",
+        "camera_area": "area_4",
+        "camera_location": "area_4 南边 road_4_1 上"
+    },
+    "area_4_camera_3": {
+        "camera_name": "area_4_camera_3",
+        "camera_area": "area_4",
+        "camera_location": "area_4 里，南边草坪旁边的路上"
+    },
+    "area_4_camera_4": {
+        "camera_name": "area_4_camera_4",
+        "camera_area": "area_4",
+        "camera_location": "area_4 里，北边草坪旁边的路径上"
+    },
+    "area_5_camera_1": {
+        "camera_name": "area_5_camera_1",
+        "camera_area": "area_5",
+        "camera_location": "area_5 西北边 road_1_2 上"
+    },
+    "area_5_camera_2": {
+        "camera_name": "area_5_camera_2",
+        "camera_area": "area_5",
+        "camera_location": "area_5 北边的草坪旁边的路径上"
+    },
+    "area_6_camera_1": {
+        "camera_name": "area_6_camera_1",
+        "camera_area": "area_6",
+        "camera_location": "area_6 南边 road_4_3 上"
+    },
+    "area_6_camera_2": {
+        "camera_name": "area_6_camera_2",
+        "camera_area": "area_6",
+        "camera_location": "area_6 北边两栋房屋中间的路径上"
+    },
+    "area_6_camera_3": {
+        "camera_name": "area_6_camera_3",
+        "camera_area": "area_6",
+        "camera_location": "area_6 里，北边草坪旁边的路径上"
+    },
+    "area_6_camera_4": {
+        "camera_name": "area_6_camera_4",
+        "camera_area": "area_6",
+        "camera_location": "area_6 东北边两栋房屋中间的路径上"
+    },
+    "area_7_camera_1": {
+        "camera_name": "area_7_camera_1",
+        "camera_area": "area_7",
+        "camera_location": "area_7 西北边 road_4_1 上"
+    },
+    "area_7_camera_2": {
+        "camera_name": "area_7_camera_2",
+        "camera_area": "area_7",
+        "camera_location": "area_7 西边两栋房屋中间的路径上"
+    },
+    "area_7_camera_3": {
+        "camera_name": "area_7_camera_3",
+        "camera_area": "area_7",
+        "camera_location": "area_7 东北边两栋房屋中间的路径上"
+    },
+    "area_7_camera_4": {
+        "camera_name": "area_7_camera_4",
+        "camera_area": "area_7",
+        "camera_location": "area_7 东边两栋房屋中间的路径上"
+    },
+    "area_7_camera_5": {
+        "camera_name": "area_7_camera_5",
+        "camera_area": "area_7",
+        "camera_location": "area_7 南边两栋房屋中间的路径上"
+    },
+    "area_8_camera_1": {
+        "camera_name": "area_8_camera_1",
+        "camera_area": "area_8",
+        "camera_location": "area_8 西南边草坪旁边的路径上"
+    },
+    "area_8_camera_2": {
+        "camera_name": "area_8_camera_2",
+        "camera_area": "area_8",
+        "camera_location": "area_8 东北边 road_4_2 上"
+    },
+    "area_8_camera_3": {
+        "camera_name": "area_8_camera_3",
+        "camera_area": "area_8",
+        "camera_location": "area_8 南边两栋房屋中间的路径上"
+    },
+    "area_9_camera_1": {
+        "camera_name": "area_9_camera_1",
+        "camera_area": "area_9",
+        "camera_location": "area_9 西边 road_2_3 上"
+    },
+    "area_9_camera_2": {
+        "camera_name": "area_9_camera_2",
+        "camera_area": "area_9",
+        "camera_location": "area_9 西南角 road_2_3 上"
+    },
+    "area_9_camera_3": {
+        "camera_name": "area_9_camera_3",
+        "camera_area": "area_9",
+        "camera_location": "area_9 北边两栋房屋中间的路径上"
+    },
+    "area_9_camera_4": {
+        "camera_name": "area_9_camera_4",
+        "camera_area": "area_9",
+        "camera_location": "area_9 里，北边草坪旁边的路径上"
+    }
+}

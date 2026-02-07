@@ -4,7 +4,7 @@ import seaborn as sns
 import os
 
 # 1. 确保输出目录存在
-output_dir = '../../results/evaluation'
+output_dir = '../../../results/evaluation'
 os.makedirs(output_dir, exist_ok=True)  # 创建目录（如果不存在）
 
 # 2. 设置中文显示
@@ -13,9 +13,9 @@ plt.rcParams['axes.unicode_minus'] = False    # 用来正常显示负号
 
 # 3. 读取数据
 single_df = pd.read_csv(
-    '../../results/evaluation/single_and_multi_view/road_occupation_for_business_and_construction/single_vehicle_road_occupation_for_business_and_construction_evaluation.csv')
+    '../../../results/evaluation/single_and_multi_view/road_occupation_for_business_and_construction/single_vehicle_road_occupation_for_business_and_construction_evaluation.csv')
 multi_df = pd.read_csv(
-    '../../results/evaluation/single_and_multi_view/road_occupation_for_business_and_construction/multi_vehicle_road_occupation_for_business_and_construction_evaluation.csv')
+    '../../../results/evaluation/single_and_multi_view/road_occupation_for_business_and_construction/multi_vehicle_road_occupation_for_business_and_construction_evaluation.csv')
 
 # 4. 添加视角类型列
 single_df['视角'] = '单视角'
