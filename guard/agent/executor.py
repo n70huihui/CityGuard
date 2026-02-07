@@ -72,9 +72,10 @@ def get_monitor_report(monitor_name: str, task_description: str, runtime: ToolRu
     :param runtime: 工具运行时上下文
     :return: 监控视角分析报告
     """
-    print(f"get_monitor_info: {monitor_name}")
-    # 提取举报类型
+    # print(f"get_monitor_info: {monitor_name}")
+    # 提取相关的举报信息
     type_name = runtime.context.type_name
+    type_id = str(runtime.context.id)
 
     # 提取监控编号
     monitor_id = monitor_name.split('_')[1]
@@ -83,12 +84,24 @@ def get_monitor_report(monitor_name: str, task_description: str, runtime: ToolRu
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(current_dir))
 
-    # 构建图片路径
-    image_path = os.path.join(project_root, 'datasets', 'monitor', f"{monitor_id}.jpg")
+    # 构建两种可能的图片路径
+    # 优先路径：datasets/{type_name}/{type_id}/monitor/{monitor_id}.jpg
+    image_path_priority = os.path.join(
+        project_root, 'datasets', type_name, type_id, 'monitor', f"{monitor_id}.jpg"
+    )
+    # 备选路径：datasets/base/monitor/{monitor_id}.jpg
+    image_path_fallback = os.path.join(
+        project_root, 'datasets', 'base', 'monitor', f"{monitor_id}.jpg"
+    )
 
-    # 检查文件是否存在
-    if not os.path.exists(image_path):
-        raise FileNotFoundError(f"监控图片不存在: {image_path}")
+    # 优先检查新路径，不存在则使用备选路径
+    if os.path.exists(image_path_priority):
+        image_path = image_path_priority
+    elif os.path.exists(image_path_fallback):
+        image_path = image_path_fallback
+    else:
+        # 两个路径都不存在时抛出异常
+        raise FileNotFoundError(f"监控图片不存在: {image_path_priority} or {image_path_fallback}")
 
     # 读取图片并转换为 base64
     with open(image_path, "rb") as image_file:
@@ -121,8 +134,9 @@ def get_camera_report(camera_area: str, task_description: str, runtime: ToolRunt
     :return: 车载摄像头视角分析报告
     """
     print(f"get_camera_report:{camera_area}")
-    # 拿到类型信息
+    # 提取相关的举报信息
     type_name = runtime.context.type_name
+    type_id = str(runtime.context.id)
 
     # 拿到当前区域的摄像头列表
     camera_lst = area_camera_dict[camera_area]
@@ -139,12 +153,24 @@ def get_camera_report(camera_area: str, task_description: str, runtime: ToolRunt
         area_id = split_camera_name[1]
         camera_id = split_camera_name[3]
 
-        # 构建图片路径
-        image_path = os.path.join(project_root, 'datasets', 'cameras', str(area_id), f"{camera_id}.jpg")
+        # 构建两种可嫩的图片路径
+        # 优先路径: datasets/{type_name}/{type_id}/cameras/{area_id}/{camera_id}.jpg
+        image_path_priority = os.path.join(
+            project_root, 'datasets', type_name, type_id, 'cameras', str(area_id), f"{camera_id}.jpg"
+        )
+        # 备选路径: datasets/base/cameras/{area_id}/{camera_id}.jpg
+        image_path_fallback = os.path.join(
+            project_root, 'datasets', 'base', 'cameras', str(area_id), f"{camera_id}.jpg"
+        )
 
-        # 检查文件是否存在
-        if not os.path.exists(image_path):
-            raise FileNotFoundError(f"摄像图片不存在: {image_path}")
+        # 优先检查新路径，不存在则使用备选路径
+        if os.path.exists(image_path_priority):
+            image_path = image_path_priority
+        elif os.path.exists(image_path_fallback):
+            image_path = image_path_fallback
+        else:
+            # 两个路径都不存在时抛出异常
+            raise FileNotFoundError(f"监控图片不存在: {image_path_priority} or {image_path_fallback}")
 
         # 读取图片并转换为 base64
         with open(image_path, "rb") as image_file:
