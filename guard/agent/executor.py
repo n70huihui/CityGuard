@@ -133,7 +133,7 @@ def get_camera_report(camera_area: str, task_description: str, runtime: ToolRunt
     :param runtime: 工具运行时上下文
     :return: 车载摄像头视角分析报告
     """
-    print(f"get_camera_report:{camera_area}")
+    # print(f"get_camera_report:{camera_area}")
     # 提取相关的举报信息
     type_name = runtime.context.type_name
     type_id = str(runtime.context.id)
