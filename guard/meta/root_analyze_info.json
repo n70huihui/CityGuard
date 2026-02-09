@@ -1,4 +1,66 @@
 {
+  "accident": [
+    {
+      "type_name": "accident",
+      "id": 1,
+      "user_prompt": "road_3_1出现严重拥堵，车辆通行缓慢",
+      "root_cause": "road_3_3(cross_2)处发生两车追尾事故，事故车辆占道导致 road_3_1, road_3_2 通行受阻。"
+    },
+    {
+      "type_name": "accident",
+      "id": 2,
+      "user_prompt": "road_1_1往area_1方向车流停滞",
+      "root_cause": "road_3_1接近cross_1路段有两车追尾事故，导致车流停滞。"
+    },
+    {
+      "type_name": "accident",
+      "id": 3,
+      "user_prompt": "area_4附近车辆排队，road_1_2无法正常进入",
+      "root_cause": "road_4_1在cross_3附近发生多车连环追尾，车流回溯影响周边路网。"
+    },
+    {
+      "type_name": "accident",
+      "id": 4,
+      "user_prompt": "road_2_2通行效率极低，车辆堵塞",
+      "root_cause": "road_4_2(cross_4)有车辆违规变道引发碰撞，拥堵迅速扩散。"
+    },
+    {
+      "type_name": "accident",
+      "id": 5,
+      "user_prompt": "road_3_3北向行驶缓慢，车流积压",
+      "root_cause": "road_3_1(cross_1)处发生车辆事故，路口混乱波及road_3_3。"
+    },
+    {
+      "type_name": "accident",
+      "id": 6,
+      "user_prompt": "road_1_3路面拥堵",
+      "root_cause": "road_1_2(cross_3)附近车辆制动不及发生追尾，造成车辆拥堵。"
+    },
+    {
+      "type_name": "accident",
+      "id": 7,
+      "user_prompt": "road_2_2 道路通行异常，导航显示深红色",
+      "root_cause": "road_2_1(cross_2)有车辆发生事故，导致道路车流瓶颈。"
+    },
+    {
+      "type_name": "accident",
+      "id": 8,
+      "user_prompt": "road_4_3行车不畅",
+      "root_cause": "road_4_1附近路段两车发生刮蹭，波及 road_4_2, road_4_3。"
+    },
+    {
+      "type_name": "accident",
+      "id": 9,
+      "user_prompt": "road_1_2出现不明原因拥堵",
+      "root_cause": "road_1_1车辆引发碰擦，事故车辆占道发生拥堵。"
+    },
+    {
+      "type_name": "accident",
+      "id": 10,
+      "user_prompt": "road_2_1与road_3_3交汇处车流停滞",
+      "root_cause": "road_3_3(cross_2)发生车辆相撞，交通中断。"
+    }
+  ],
   "garbage": [
     {
       "type_name": "garbage",
