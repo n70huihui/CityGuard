@@ -61,6 +61,68 @@
       "root_cause": "road_3_1 发生车辆相撞，交通中断，波及 road_3_2, road_3_3。"
     }
   ],
+  "burn": [
+    {
+      "type_name": "burn",
+      "id": 1,
+      "user_prompt": "area_2 区域内持续闻到刺鼻气味，居民不敢开窗",
+      "root_cause": "area_1 垃圾出现燃烧现象，有毒烟尘吹向 area_2"
+    },
+    {
+      "type_name": "burn",
+      "id": 2,
+      "user_prompt": "area_2 有浓烈烟熏味，能见度降低",
+      "root_cause": "area_3 区域房屋出现火灾，烟雾沿道路扩散至 area_2"
+    },
+    {
+      "type_name": "burn",
+      "id": 3,
+      "user_prompt": "area_4 居民区闻到浓烈刺鼻气味",
+      "root_cause": "area_1 垃圾出现燃烧现象，有毒烟尘吹向 area_2"
+    },
+    {
+      "type_name": "burn",
+      "id": 4,
+      "user_prompt": "area_6 有浓烈烟熏味，能见度降低",
+      "root_cause": "area_3 区域房屋出现火灾，烟雾沿道路扩散至 area_6"
+    },
+    {
+      "type_name": "burn",
+      "id": 5,
+      "user_prompt": "area_8 多栋住宅楼同时投诉有焦糊味，部分居民呼吸道不适",
+      "root_cause": "area_7 区域房屋出现火灾，烟雾沿道路扩散至 area_8"
+    },
+    {
+      "type_name": "burn",
+      "id": 6,
+      "user_prompt": "area_4 闻到焦糊味",
+      "root_cause": "area_7 区域房屋出现火灾，烟雾沿道路扩散至 area_8"
+    },
+    {
+      "type_name": "burn",
+      "id": 7,
+      "user_prompt": "area_8 居民反映有刺鼻气味",
+      "root_cause": "area_9 垃圾出现燃烧现象，产生刺鼻气味，影响周边"
+    },
+    {
+      "type_name": "burn",
+      "id": 8,
+      "user_prompt": "area_6 居民反映有刺鼻气味",
+      "root_cause": "area_9 垃圾出现燃烧现象，产生刺鼻气味，影响周边"
+    },
+    {
+      "type_name": "burn",
+      "id": 9,
+      "user_prompt": "road_2_2 闻到刺鼻气味",
+      "root_cause": "area_5 垃圾出现燃烧现象，产生刺鼻气味，影响周边"
+    },
+    {
+      "type_name": "burn",
+      "id": 10,
+      "user_prompt": "road_1_2 出现刺鼻气味",
+      "root_cause": "area_5 垃圾出现燃烧现象，产生刺鼻气味，影响周边"
+    }
+  ],
   "garbage": [
     {
       "type_name": "garbage",
