@@ -49,12 +49,12 @@ class DefaultPlanner(Planner):
     """
     默认规划器，用来做默认的测试
     """
-    def __init__(self):
+    def __init__(self, type_name: str = "garbage", id: int = 0):
         """
         初始化，默认运行 garbage 类型的第一个样例
         """
-        super().__init__(type_name="garbage")
-        self.data = root_analyze_info["garbage"][0]
+        super().__init__(type_name=type_name)
+        self.data = root_analyze_info[type_name][id]
 
     def run_default(self) -> str:
         return self.run(task_uuid="uuid-1", user_prompt=self.data.user_prompt, type_id=self.data.id)
@@ -82,5 +82,5 @@ class DefaultPlanner(Planner):
                     print(f"Message: {response}")
 
 if __name__ == "__main__":
-    default_planner = DefaultPlanner()
-    default_planner.run_default_stream()
+    default_planner = DefaultPlanner(type_name="burn")
+    default_planner.run_default()
