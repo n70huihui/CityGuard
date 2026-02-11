@@ -19,6 +19,8 @@ class Planner:
         """
         智能体初始化
         :param type_name: 类型名称，用于查询监控信息和根因分析信息
+        :param tools: 工具列表，默认包含监控执行器和车载摄像头执行器
+        :param system_prompt: 系统提示，默认包含监控信息和根因分析信息
         """
         self.type_name: str = type_name
         self.planner: CompiledStateGraph = create_agent(
