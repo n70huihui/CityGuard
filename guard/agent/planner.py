@@ -12,7 +12,10 @@ from guard.common.prompt import planner_sys_prompt
 
 class Planner:
     """智能体规划器，是主要的智能体实现"""
-    def __init__(self, type_name: str):
+    def __init__(self,
+                 type_name: str,
+                 tools: list | None = [get_monitor_report, get_camera_report],
+                 system_prompt: str = planner_sys_prompt.format(monitor_info=monitors)):
         """
         智能体初始化
         :param type_name: 类型名称，用于查询监控信息和根因分析信息
@@ -20,10 +23,8 @@ class Planner:
         self.type_name: str = type_name
         self.planner: CompiledStateGraph = create_agent(
             model=ChatOpenAI(model=model, base_url=base_url, api_key=api_key),
-            tools=[get_monitor_report, get_camera_report],
-            system_prompt=planner_sys_prompt.format(
-                monitor_info=monitors
-            ),
+            tools=tools,
+            system_prompt=system_prompt,
             context_schema=PlannerContext,
             checkpointer=InMemorySaver()  # 智能体记忆
         )
