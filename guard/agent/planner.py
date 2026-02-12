@@ -48,6 +48,24 @@ class Planner:
         content = response["messages"][-1].content_blocks
         return content[-1]['text']
 
+    def run_with_step(self, task_uuid: str, user_prompt: str, type_id: int) -> tuple[str, int]:
+        """
+        执行智能体规划流程，返回最终报告和当前步骤
+        :param task_uuid: 任务 uuid
+        :param user_prompt: 用户 prompt
+        :param type_id: type_name 类型下的 type_id，用于读取数据集
+        :return: 最终报告和当前步骤
+        """
+        response = self.planner.invoke(
+            {"messages": [HumanMessage(content=f"市民举报信息如下：{user_prompt}")]},
+            {"configurable": {"thread_id": task_uuid}},
+            context=PlannerContext(type_name=self.type_name, id=type_id)
+        )
+
+        content = response["messages"][-1].content_blocks
+
+        return content[-1]['text'], len(response["messages"])
+
 class DefaultPlanner(Planner):
     """
     默认规划器，用来做默认的测试
@@ -61,6 +79,9 @@ class DefaultPlanner(Planner):
 
     def run_default(self) -> str:
         return self.run(task_uuid="uuid-1", user_prompt=self.data.user_prompt, type_id=self.data.id)
+
+    def run_default_with_step(self) -> tuple[str, int]:
+        return self.run_with_step(task_uuid="uuid-1", user_prompt=self.data.user_prompt, type_id=self.data.id)
 
     def run_default_stream(self) -> None:
         """流式打印到控制台"""
@@ -85,5 +106,6 @@ class DefaultPlanner(Planner):
                     print(f"Message: {response}")
 
 if __name__ == "__main__":
-    default_planner = DefaultPlanner(type_name="burn")
-    default_planner.run_default()
+    default_planner = DefaultPlanner()
+    result, step = default_planner.run_default_with_step()
+    print(f"result: {result}, step: {step}")

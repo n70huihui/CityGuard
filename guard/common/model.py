@@ -33,3 +33,11 @@ class RootAnalyzeData(BaseModel):
     id: int = Field(description="id 编号")
     user_prompt: str = Field(description="用户提示词")
     root_cause: str = Field(description="根因")
+
+class RootAnalyzeReport(BaseModel):
+    """根因分析报告"""
+    type_name: str = Field(description="类型名称")
+    id: int = Field(description="id 编号")
+    response: str = Field(description="智能体报告")
+    step: int = Field(description="推理步数")
+    score: float = Field(description="推理得分")

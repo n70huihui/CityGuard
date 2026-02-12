@@ -66,4 +66,5 @@ def compress_pngs_in_folder(folder_path: str, quality: int = 85) -> None:
             print(f"处理 {file_path} 时出错: {str(e)}")
 
 if __name__ == "__main__":
-    create_folder_structure(type_name="garbage", num=10)
+    compress_pngs_in_folder("C:\MyData\Projects\CodeSpace\Pycharm\CityGuard\datasets\water")
+    # create_folder_structure(type_name="water", num=10)
