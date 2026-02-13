@@ -3,6 +3,8 @@ import csv
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from tqdm import tqdm
+
 from guard.agent.executor import root_analyze_info, get_camera_report, get_monitor_report, monitors
 from guard.agent.planner import Planner
 from guard.agent.verifier import verify
@@ -51,7 +53,7 @@ class ExperimentSolver:
         """
         start_idx = start_id - 1
         reports = []
-        for i in range(start_idx, len(self.data)):
+        for i in tqdm(range(start_idx, len(self.data)), desc='planner_execute'):
             _, report = self._process_single_task(i)
             reports.append(report)
         return reports
@@ -74,7 +76,7 @@ class ExperimentSolver:
             future_to_idx = {executor.submit(self._process_single_task, i): i for i in indices}
 
             # 收集结果
-            for future in as_completed(future_to_idx):
+            for future in tqdm(as_completed(future_to_idx), total=len(indices), desc='planner_execute_multi'):
                 idx, report = future.result()
                 results[idx] = report
 
@@ -89,7 +91,7 @@ class ExperimentSolver:
         :return: 将报告的得分字段进行赋值
         """
         # 这里因为大模型打分很快，就直接串行执行了:D
-        for report in reports:
+        for report in tqdm(reports, desc='report_verify'):
             data_idx = report.id - 1
             # 拿到对应的根因
             root_cause = self.data[data_idx].root_cause
@@ -145,6 +147,8 @@ class ExperimentSolver:
         """
         处理实验
         :param start_id: 样例起始 id
+        :param max_workers: 线程池最大工作线程数，默认 5
+        :param is_multi: 是否使用多线程执行，默认 True
         :return: 无
         """
         # 1. 执行规划器
@@ -211,7 +215,5 @@ class AblationRandomSolver(ExperimentSolver):
         )
 
 if __name__ == '__main__':
-    solver = ExperimentSolver(planner=Planner(type_name="garbage"), experiment_name="test")
-    solver._save_report_as_csv(reports=[
-        RootAnalyzeReport(type_name="garbage", id=1, response="垃圾", step=1, score=3.0)
-    ])
+    solver = CityGuardSolver(type_name='burn')
+    solver.solve(start_id=1, max_workers=5, is_multi=True)
