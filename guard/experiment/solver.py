@@ -1,6 +1,8 @@
 import os
 import csv
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from guard.agent.executor import root_analyze_info, get_camera_report, get_monitor_report, monitors
 from guard.agent.planner import Planner
 from guard.agent.verifier import verify
@@ -22,29 +24,62 @@ class ExperimentSolver:
         self.experiment_name: str = experiment_name
         self.data: list[RootAnalyzeData] = root_analyze_info[planner.type_name]
 
+    def _process_single_task(self, idx: int) -> tuple[int, RootAnalyzeReport]:
+        """
+        处理单个任务
+        :param idx: 样例索引
+        :return: 索引，报告
+        """
+        result, step = self.planner.run_with_step(
+            task_uuid=f"uuid-{idx}",
+            user_prompt=self.data[idx].user_prompt,
+            type_id=self.data[idx].id
+        )
+        return idx, RootAnalyzeReport(
+            type_name=self.planner.type_name,
+            id=self.data[idx].id,
+            response=result,
+            step=step,
+            score=0.0
+        )
+
     def _planner_execute(self, start_id: int) -> list[RootAnalyzeReport]:
         """
-        执行规划器
+        执行规划器，串行执行
         :param start_id: 样例起始 id
         :return: 根因分析报告列表
         """
-        # TODO 线程池并行执行
         start_idx = start_id - 1
         reports = []
         for i in range(start_idx, len(self.data)):
-            result, step = self.planner.run_with_step(
-                task_uuid=f"uuid-{i}",
-                user_prompt=self.data[i].user_prompt,
-                type_id=self.data[i].id
-            )
-            # 组装 RootAnalyzeReport
-            reports.append(RootAnalyzeReport(
-                type_name=self.planner.type_name,
-                id=self.data[i].id,
-                response=result,
-                step=step,
-                score=0.0
-            ))
+            _, report = self._process_single_task(i)
+            reports.append(report)
+        return reports
+
+    def _planner_execute_multi(self, start_id: int, max_workers: int = 5) -> list[RootAnalyzeReport]:
+        """
+        执行规划器（线程池并行执行）
+        :param start_id: 样例起始 id
+        :param max_workers: 线程池最大工作线程数，默认 5
+        :return: 根因分析报告列表
+        """
+        start_idx = start_id - 1
+        # 收集所有需要处理的索引
+        indices = list(range(start_idx, len(self.data)))
+
+        # 使用线程池并行执行
+        results: dict[int, RootAnalyzeReport] = {}
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # 提交所有任务
+            future_to_idx = {executor.submit(self._process_single_task, i): i for i in indices}
+
+            # 收集结果
+            for future in as_completed(future_to_idx):
+                idx, report = future.result()
+                results[idx] = report
+
+        # 按原始顺序返回报告
+        reports = [results[i] for i in indices]
         return reports
 
     def _report_verify(self, reports: list[RootAnalyzeReport]) -> None:
@@ -106,14 +141,17 @@ class ExperimentSolver:
                     "score": str(report.score)
                 })
 
-    def solve(self, start_id: int = 1) -> None:
+    def solve(self, start_id: int = 1, max_workers: int = 5, is_multi: bool = True) -> None:
         """
         处理实验
         :param start_id: 样例起始 id
         :return: 无
         """
         # 1. 执行规划器
-        reports = self._planner_execute(start_id=start_id)
+        if is_multi:
+            reports = self._planner_execute_multi(start_id=start_id, max_workers=max_workers)
+        else:
+            reports = self._planner_execute(start_id=start_id)
 
         # 2. 验证报告，拿到得分
         self._report_verify(reports=reports)
