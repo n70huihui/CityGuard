@@ -17,19 +17,19 @@
     },
     "monitor_5": {
         "monitor_name": "monitor_5",
-        "monitor_area": ["road_3_2", "road_1_2"]
+        "monitor_area": ["road_1_2", "road_3_2"]
     },
     "monitor_6": {
         "monitor_name": "monitor_6",
-        "monitor_area": ["road_3_3", "road_2_2"]
+        "monitor_area": ["road_2_2", "road_3_3"]
     },
     "monitor_7": {
         "monitor_name": "monitor_7",
-        "monitor_area": ["road_4_2", "road_1_3"]
+        "monitor_area": ["road_1_3", "road_4_2"]
     },
     "monitor_8": {
         "monitor_name": "monitor_8",
-        "monitor_area": ["road_4_3", "road_2_3"]
+        "monitor_area": ["road_2_3", "road_4_3"]
     },
     "monitor_9": {
         "monitor_name": "monitor_9",

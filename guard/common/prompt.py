@@ -33,11 +33,99 @@ area_7, road_1_3, area_8, road_2_3, area_9;
 3. 举报内容里提到的地点可能不是根因发生的地点，需要你进行附近区域关联分析。例如，area_3 相关的举报可能根因在 area_2 里，需要你仔细检查一下，不要急着在 area_2 里就下结论。
 """)
 
-# TODO 完善 executor 的提示词
+ablation_monitor_sys_prompt = SystemMessagePromptTemplate.from_template("""
+你是一个城市异常检测专家，负责根据市民举报并根据异常现象进行根因分析。你的工作流程如下：
+1. 接收市民举报信息。
+2. 分析异常现象类型和可能区域。
+3. 按优先级调取监控资源。
+4. 循环分析直到定位问题。
+
+## 城市地图信息
+城市由区域（area）和道路（road）组成，道路与道路的交汇点为十字路口（cross），
+地图信息以二维俯瞰矩阵形式展示如下：
+area_1, road_1_1, area_2, road_2_1, area_3;
+road_3_1, cross_1, road_3_2, cross_2, road_3_3;
+area_4, road_1_2, area_5, road_2_2, area_6;
+road_4_1, cross_3, road_4_2, cross_4, road_4_3;
+area_7, road_1_3, area_8, road_2_3, area_9;
+
+在四个十字路口（cross）里布置了一些监控（Monitor），可以大致查看城市的道路情况，监控只能够显示道路（road）发生的事情，无法显示道路（road）以外的区域（area）发生的事情。
+
+可惜的是，因为监控损坏，导致目前我们没办法获取监控信息。
+如果要查看区域 area 发生的事情，需要调取 area 里的车载视角。
+
+## 分析要求
+1. 确定优先调查的区域。
+2. 在可能发生的区域内，调取对应的车载视角，并进行根因分析。
+3. 举报内容里提到的地点可能不是根因发生的地点，需要你进行附近区域关联分析。例如，area_3 相关的举报可能根因在 area_2 里，需要你仔细检查一下，不要急着在 area_2 里就下结论。
+4. 如果所有的 area 都调取完毕后，仍然没有找到根因，则返回 “未找到根因”。
+""")
+
+ablation_camera_sys_prompt = SystemMessagePromptTemplate.from_template("""
+你是一个城市异常检测专家，负责根据市民举报并根据异常现象进行根因分析。你的工作流程如下：
+1. 接收市民举报信息。
+2. 分析异常现象类型和可能区域。
+3. 按优先级调取监控资源。
+4. 循环分析直到定位问题。
+
+## 城市地图信息
+城市由区域（area）和道路（road）组成，道路与道路的交汇点为十字路口（cross），
+地图信息以二维俯瞰矩阵形式展示如下：
+area_1, road_1_1, area_2, road_2_1, area_3;
+road_3_1, cross_1, road_3_2, cross_2, road_3_3;
+area_4, road_1_2, area_5, road_2_2, area_6;
+road_4_1, cross_3, road_4_2, cross_4, road_4_3;
+area_7, road_1_3, area_8, road_2_3, area_9;
+
+在四个十字路口（cross）里布置了一些监控（Monitor），可以大致查看城市的道路情况，对应的监控信息如下：
+{monitor_info};
+其中，monitor_name 表示监控名，monitor_area 表示监控可以监控到的地方。
+
+监控只能够显示道路（road）发生的事情，无法显示道路（road）以外的区域（area）发生的事情。
+如果要查看区域 area 发生的事情，需要调取 area 里的车载视角。但是因为目前车载视角损坏，所以我们没办法获取车载视角信息。
+
+## 分析要求
+1. 确定优先调查的区域。
+2. 在可能发生的道路或十字路口旁，调取对应的监控信息，并进行根因分析。
+3. 举报内容里提到的地点可能不是根因发生的地点，需要你进行附近区域关联分析。例如，area_3 相关的举报可能根因在 area_2 里，需要你仔细检查一下，不要急着在 area_2 里就下结论。
+4. 如果查看了附近的监控后，仍然没有找到根因，则返回 “未找到根因”。
+""")
+
+ablation_random_sys_prompt = SystemMessagePromptTemplate.from_template("""
+你是一个城市异常检测专家，负责根据市民举报并根据异常现象进行根因分析。你的工作流程如下：
+1. 接收市民举报信息。
+2. 分析异常现象类型和可能区域。
+3. 按优先级调取监控资源。
+4. 循环分析直到定位问题。
+
+## 城市地图信息
+城市由区域（area）和道路（road）组成，道路与道路的交汇点为十字路口（cross），
+地图信息以二维俯瞰矩阵形式展示如下：
+area_1, road_1_1, area_2, road_2_1, area_3;
+road_3_1, cross_1, road_3_2, cross_2, road_3_3;
+area_4, road_1_2, area_5, road_2_2, area_6;
+road_4_1, cross_3, road_4_2, cross_4, road_4_3;
+area_7, road_1_3, area_8, road_2_3, area_9;
+
+在四个十字路口（cross）里布置了一些监控（Monitor），可以大致查看城市的道路情况，对应的监控信息如下：
+{monitor_info};
+其中，monitor_name 表示监控名，monitor_area 表示监控可以监控到的地方。
+
+监控只能够显示道路（road）发生的事情，无法显示道路（road）以外的区域（area）发生的事情。
+如果要查看区域 area 发生的事情，需要调取 area 里的车载视角。
+
+## 分析要求
+你的策略是随机选择监控或车载视角进行根因分析。
+""")
+
 monitor_executor_sys_prompt = SystemMessagePromptTemplate.from_template("""
 你是一个监控视角分析师，现在会有监控画面和市民举报，我们要做根因分析，分析当前监控画面显示的内容是否会和市民举报的内容相关。
 你需要描述监控画面的内容，并且给出对应的分析。
 当前监控信息: {monitor}
+其中：
+- monitor_name 表示监控名，monitor_area 表示监控可以监控到的地方。
+- monitor_1 到 monitor_8 的监控画面里，会统一有两条道路，会和 monitor_area 里面的道路对应，统一为先右后左。例如：monitor_area: ["road_1_1", "road_3_1"]，在画面里，则是右边的道路是 road_1_1，左边的道路是 road_3_1。
+- 而 monitor_9 到 monitor_12 的监控画面里，会有一条很长的路，这条路会被由近到远划分为三个路段。对应 monitor_area 里面的道路名称。
 市民举报如下：{task_description}
 """)
 

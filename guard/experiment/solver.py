@@ -1,10 +1,11 @@
 import os
 import csv
 
-from guard.agent.executor import root_analyze_info, get_camera_report, get_monitor_report
+from guard.agent.executor import root_analyze_info, get_camera_report, get_monitor_report, monitors
 from guard.agent.planner import Planner
 from guard.agent.verifier import verify
 from guard.common.model import RootAnalyzeReport, RootAnalyzeData
+from guard.common.prompt import ablation_monitor_sys_prompt, ablation_camera_sys_prompt, ablation_random_sys_prompt
 
 
 class ExperimentSolver:
@@ -120,7 +121,14 @@ class ExperimentSolver:
         # 3. 保存报告到 csv 文件
         self._save_report_as_csv(reports=reports)
 
-# TODO 对应的 Agent Prompt
+class CityGuardSolver(ExperimentSolver):
+    """CityGuard 实验代码"""
+    def __init__(self, type_name: str):
+        super().__init__(
+            planner=Planner(type_name=type_name),
+            experiment_name="cityguard"
+        )
+
 class MotivationSolver(ExperimentSolver):
     """Motivation 实验代码"""
     def __init__(self, type_name: str):
@@ -133,7 +141,11 @@ class AblationMonitorSolver(ExperimentSolver):
     """消融实验，去掉 Monitor"""
     def __init__(self, type_name: str):
         super().__init__(
-            planner=Planner(type_name=type_name, tools=[get_camera_report]),
+            planner=Planner(
+                type_name=type_name,
+                tools=[get_camera_report],
+                system_prompt=ablation_monitor_sys_prompt.format()
+            ),
             experiment_name="ablation_monitor"
         )
 
@@ -141,7 +153,11 @@ class AblationCameraSolver(ExperimentSolver):
     """消融实验，去掉 Camera"""
     def __init__(self, type_name: str):
         super().__init__(
-            planner=Planner(type_name=type_name, tools=[get_monitor_report]),
+            planner=Planner(
+                type_name=type_name,
+                tools=[get_monitor_report],
+                system_prompt=ablation_camera_sys_prompt.format(monitor_info=monitors)
+            ),
             experiment_name="ablation_camera"
         )
 
@@ -149,7 +165,10 @@ class AblationRandomSolver(ExperimentSolver):
     """消融实验，Random 策略"""
     def __init__(self, type_name: str):
         super().__init__(
-            planner=Planner(type_name=type_name, tools=[get_monitor_report, get_camera_report]),
+            planner=Planner(
+                type_name=type_name,
+                system_prompt=ablation_random_sys_prompt.format(monitor_info=monitors)
+            ),
             experiment_name="ablation_random"
         )
 
