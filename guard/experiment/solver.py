@@ -215,5 +215,5 @@ class AblationRandomSolver(ExperimentSolver):
         )
 
 if __name__ == '__main__':
-    solver = CityGuardSolver(type_name='burn')
+    solver = AblationMonitorSolver(type_name='garbage')
     solver.solve(start_id=1, max_workers=5, is_multi=True)

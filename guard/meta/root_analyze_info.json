@@ -61,68 +61,6 @@
       "root_cause": "road_3_1 发生车辆相撞，交通中断，波及 road_3_2, road_3_3。"
     }
   ],
-  "burn": [
-    {
-      "type_name": "burn",
-      "id": 1,
-      "user_prompt": "area_2 区域内持续闻到刺鼻气味，居民不敢开窗",
-      "root_cause": "area_1 垃圾出现燃烧现象，有毒烟尘吹向 area_2"
-    },
-    {
-      "type_name": "burn",
-      "id": 2,
-      "user_prompt": "area_2 有浓烈烟熏味，能见度降低",
-      "root_cause": "area_3 区域房屋出现火灾，烟雾沿道路扩散至 area_2"
-    },
-    {
-      "type_name": "burn",
-      "id": 3,
-      "user_prompt": "area_4 居民区闻到浓烈刺鼻气味",
-      "root_cause": "area_1 垃圾出现燃烧现象，有毒烟尘吹向 area_2"
-    },
-    {
-      "type_name": "burn",
-      "id": 4,
-      "user_prompt": "area_6 有浓烈烟熏味，能见度降低",
-      "root_cause": "area_3 区域房屋出现火灾，烟雾沿道路扩散至 area_6"
-    },
-    {
-      "type_name": "burn",
-      "id": 5,
-      "user_prompt": "area_8 多栋住宅楼同时投诉有焦糊味，部分居民呼吸道不适",
-      "root_cause": "area_7 区域房屋出现火灾，烟雾沿道路扩散至 area_8"
-    },
-    {
-      "type_name": "burn",
-      "id": 6,
-      "user_prompt": "area_4 闻到焦糊味",
-      "root_cause": "area_7 区域房屋出现火灾，烟雾沿道路扩散至 area_8"
-    },
-    {
-      "type_name": "burn",
-      "id": 7,
-      "user_prompt": "area_8 居民反映有刺鼻气味",
-      "root_cause": "area_9 垃圾出现燃烧现象，产生刺鼻气味，影响周边"
-    },
-    {
-      "type_name": "burn",
-      "id": 8,
-      "user_prompt": "area_6 居民反映有刺鼻气味",
-      "root_cause": "area_9 垃圾出现燃烧现象，产生刺鼻气味，影响周边"
-    },
-    {
-      "type_name": "burn",
-      "id": 9,
-      "user_prompt": "road_2_2 闻到刺鼻气味",
-      "root_cause": "area_5 垃圾出现燃烧现象，产生刺鼻气味，影响周边"
-    },
-    {
-      "type_name": "burn",
-      "id": 10,
-      "user_prompt": "road_1_2 出现刺鼻气味",
-      "root_cause": "area_5 垃圾出现燃烧现象，产生刺鼻气味，影响周边"
-    }
-  ],
   "garbage": [
     {
       "type_name": "garbage",
@@ -183,6 +121,68 @@
       "id": 10,
       "user_prompt": "在road_3_1感觉到恶臭",
       "root_cause": "area_1区域垃圾处理不当，恶臭扩散至road_3_1"
+    }
+  ],
+  "noise": [
+    {
+      "type_name": "noise",
+      "id": 1,
+      "user_prompt": "area_2 区域内居民反映有持续的挖掘机轰鸣声和敲击声",
+      "root_cause": "road_1_1 道路施工，施工噪音扩散至相邻的 area_2"
+    },
+    {
+      "type_name": "noise",
+      "id": 2,
+      "user_prompt": "area_2 区域内有持续的钻孔和机械振动声",
+      "root_cause": "road_3_2 道路进行施工，重型机械作业产生噪音影响 area_2"
+    },
+    {
+      "type_name": "noise",
+      "id": 3,
+      "user_prompt": "area_4 区域内夜间无法休息，有持续施工噪音",
+      "root_cause": "road_1_2 道路进行施工，作业声影响 area_4"
+    },
+    {
+      "type_name": "noise",
+      "id": 4,
+      "user_prompt": "area_6 区域内有持续的噪声",
+      "root_cause": "road_2_2 道路进行施工，混凝土搅拌车和起重机作业声扩散至 area_6"
+    },
+    {
+      "type_name": "noise",
+      "id": 5,
+      "user_prompt": "area_8 多栋住宅楼居民投诉夜间噪音扰民",
+      "root_cause": "road_1_3 道路施工，连续作业产生噪音影响 area_8"
+    },
+    {
+      "type_name": "noise",
+      "id": 6,
+      "user_prompt": "area_4 区域内有持续噪音",
+      "root_cause": "road_4_1 道路进行施工，作业声影响 area_4"
+    },
+    {
+      "type_name": "noise",
+      "id": 7,
+      "user_prompt": "area_8 居民反映有持续的噪音",
+      "root_cause": "road_2_3 道路进行施工，噪音传播至 area_8"
+    },
+    {
+      "type_name": "noise",
+      "id": 8,
+      "user_prompt": "area_6 区域内有持续的噪音",
+      "root_cause": "road_4_3 道路进行施工，影响 area_6"
+    },
+    {
+      "type_name": "noise",
+      "id": 9,
+      "user_prompt": "road_2_2 路段沿线居民反映有持续的噪音",
+      "root_cause": "area_5 区域内进行施工，噪音传播至 road_2_2"
+    },
+    {
+      "type_name": "noise",
+      "id": 10,
+      "user_prompt": "road_1_2 路段沿线店铺反映有持续的钻孔和敲击噪音",
+      "root_cause": "area_5 区域内进行旧楼改造施工，拆除和重建作业声影响 road_1_2"
     }
   ],
   "water": [

@@ -106,6 +106,6 @@ class DefaultPlanner(Planner):
                     print(f"Message: {response}")
 
 if __name__ == "__main__":
-    default_planner = DefaultPlanner()
+    default_planner = DefaultPlanner(type_name="burn")
     result, step = default_planner.run_default_with_step()
     print(f"result: {result}, step: {step}")
