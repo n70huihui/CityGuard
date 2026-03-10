@@ -27,6 +27,13 @@ class CameraReport(BaseModel):
     camera_content_lst: list[str] = Field(description="摄像头画面内容")
     camera_report_lst: list[str] = Field(description="摄像头视角分析报告")
 
+class FinalReport(BaseModel):
+    """最终报告"""
+    user_prompt: str = Field(description="用户提示词")
+    analyze_goal: str = Field(description="分析目标")
+    reasoning_process_report: str = Field(description="推理过程报告")
+    final_report: str = Field(description="最终结果报告")
+
 class RootAnalyzeData(BaseModel):
     """根因分析数据"""
     type_name: str = Field(description="类型名称")

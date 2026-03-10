@@ -8,7 +8,8 @@ from env_utils.llm_args import *
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 
-from guard.common.prompt import planner_sys_prompt
+from guard.agent.generator import generator
+from guard.common.prompt import planner_sys_prompt, generator_sys_prompt
 
 class Planner:
     """智能体规划器，是主要的智能体实现"""
@@ -37,7 +38,7 @@ class Planner:
         :param task_uuid: 任务 uuid
         :param user_prompt: 用户 prompt
         :param type_id: type_name 类型下的 type_id，用于读取数据集
-        :return: 最终报告
+        :return: 简易报告
         """
         response = self.planner.invoke(
             {"messages": [HumanMessage(content=f"市民举报信息如下：{user_prompt}")]},
@@ -50,11 +51,11 @@ class Planner:
 
     def run_with_step(self, task_uuid: str, user_prompt: str, type_id: int) -> tuple[str, int]:
         """
-        执行智能体规划流程，返回最终报告和当前步骤
+        执行智能体规划流程，返回简易报告和当前步骤
         :param task_uuid: 任务 uuid
         :param user_prompt: 用户 prompt
         :param type_id: type_name 类型下的 type_id，用于读取数据集
-        :return: 最终报告和当前步骤
+        :return: 简易报告和当前步骤
         """
         response = self.planner.invoke(
             {"messages": [HumanMessage(content=f"市民举报信息如下：{user_prompt}")]},
@@ -65,6 +66,30 @@ class Planner:
         content = response["messages"][-1].content_blocks
 
         return content[-1]['text'], len(response["messages"])
+
+    def run_with_final_report(self, task_uuid: str, user_prompt: str, type_id: int) -> tuple[str, int, str]:
+        """
+        执行智能体规划流程，返回最终报告和当前步骤
+        :param task_uuid: 任务 uuid
+        :param user_prompt: 用户 prompt
+        :param type_id: type_name 类型下的 type_id，用于读取数据集
+        :return: 简易报告、最终报告和当前步骤
+        """
+        response = self.planner.invoke(
+            {"messages": [HumanMessage(content=f"市民举报信息如下：{user_prompt}")]},
+            {"configurable": {"thread_id": task_uuid}},
+            context=PlannerContext(type_name=self.type_name, id=type_id)
+        )
+
+        messages = response["messages"]
+
+        # 调用 generator 做总结，统一报告格式
+        prompt = generator_sys_prompt.format(user_prompt=user_prompt, agent_response=messages)
+        final_report = generator.invoke({"messages": [prompt]})
+
+        return (messages[-1].content_blocks[-1]['text'],
+                len(messages),
+                final_report["messages"][-1].content_blocks[-1]['text'])
 
 class DefaultPlanner(Planner):
     """
@@ -82,6 +107,9 @@ class DefaultPlanner(Planner):
 
     def run_default_with_step(self) -> tuple[str, int]:
         return self.run_with_step(task_uuid="uuid-1", user_prompt=self.data.user_prompt, type_id=self.data.id)
+
+    def run_default_with_final_report(self) -> tuple[str, int, str]:
+        return self.run_with_final_report(task_uuid="uuid-1", user_prompt=self.data.user_prompt, type_id=self.data.id)
 
     def run_default_stream(self) -> None:
         """流式打印到控制台"""
@@ -106,6 +134,6 @@ class DefaultPlanner(Planner):
                     print(f"Message: {response}")
 
 if __name__ == "__main__":
-    default_planner = DefaultPlanner(type_name="burn")
-    result, step = default_planner.run_default_with_step()
-    print(f"result: {result}, step: {step}")
+    default_planner = DefaultPlanner(type_name="garbage")
+    _, _, final_report = default_planner.run_default_with_final_report()
+    print(final_report)

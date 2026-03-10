@@ -1,4 +1,6 @@
-from langchain_core.prompts import SystemMessagePromptTemplate
+from langchain_core.prompts import SystemMessagePromptTemplate, HumanMessagePromptTemplate
+
+# region planner
 
 planner_sys_prompt = SystemMessagePromptTemplate.from_template("""
 你是一个城市异常检测专家，负责根据市民举报并根据异常现象进行根因分析。你的工作流程如下：
@@ -62,6 +64,10 @@ area_7, road_1_3, area_8, road_2_3, area_9;
 4. 如果所有的 area 都调取完毕后，仍然没有找到根因，则返回 “未找到根因”。
 """)
 
+# endregion
+
+# region experiment
+
 ablation_camera_sys_prompt = SystemMessagePromptTemplate.from_template("""
 你是一个城市异常检测专家，负责根据市民举报并根据异常现象进行根因分析。你的工作流程如下：
 1. 接收市民举报信息。
@@ -119,6 +125,10 @@ area_7, road_1_3, area_8, road_2_3, area_9;
 你的策略是随机选择监控或车载视角进行根因分析。
 """)
 
+# endregion
+
+# region executor
+
 monitor_executor_sys_prompt = SystemMessagePromptTemplate.from_template("""
 你是一个监控视角分析师，现在会有监控画面和市民举报，我们要做根因分析，分析当前监控画面显示的内容是否会和市民举报的内容相关。
 你需要描述监控画面的内容，并且给出对应的分析。
@@ -138,6 +148,10 @@ camera_executor_sys_prompt = SystemMessagePromptTemplate.from_template("""
 目前一个摄像头只对应一个拍摄画面，所以上面列表里的摄像头信息和传入的画面是一一对应的。
 市民举报如下：{task_description}
 """)
+
+# endregion
+
+# region verifier
 
 verifier_sys_prompt = SystemMessagePromptTemplate.from_template("""
 你是计算机领域专注于城市异常根因分析智能检测的学术评审专家，精通目标检测结果的语义一致性与有效性评估。
@@ -168,3 +182,15 @@ verifier_sys_prompt = SystemMessagePromptTemplate.from_template("""
 2. 若检测结果未提及场景核心要素（如垃圾场景未提“垃圾”，违规停车场景未提“违规停车”），直接判0.0分；
 3. 分数保留1位小数，如9.5、3.0、0.5（禁止整数形式如10，需写10.0）。
 """)
+
+# endregion
+
+# region generator
+
+generator_sys_prompt = HumanMessagePromptTemplate.from_template("""
+你的工作是负责总结智能体的推理过程，形成最终的报告。
+用户输入: {user_prompt}
+智能体推理过程: {agent_response}
+""")
+
+# endregion
