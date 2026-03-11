@@ -9,6 +9,7 @@ from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 
 from guard.agent.generator import generator
+from guard.common.model import FinalReport
 from guard.common.prompt import planner_sys_prompt, generator_sys_prompt
 
 class Planner:
@@ -67,7 +68,7 @@ class Planner:
 
         return content[-1]['text'], len(response["messages"])
 
-    def run_with_final_report(self, task_uuid: str, user_prompt: str, type_id: int) -> tuple[str, int, str]:
+    def run_with_final_report(self, task_uuid: str, user_prompt: str, type_id: int) -> tuple[str, int, FinalReport]:
         """
         执行智能体规划流程，返回最终报告和当前步骤
         :param task_uuid: 任务 uuid
@@ -89,7 +90,7 @@ class Planner:
 
         return (messages[-1].content_blocks[-1]['text'],
                 len(messages),
-                final_report["messages"][-1].content_blocks[-1]['text'])
+                final_report["structured_response"])
 
 class DefaultPlanner(Planner):
     """
@@ -108,7 +109,7 @@ class DefaultPlanner(Planner):
     def run_default_with_step(self) -> tuple[str, int]:
         return self.run_with_step(task_uuid="uuid-1", user_prompt=self.data.user_prompt, type_id=self.data.id)
 
-    def run_default_with_final_report(self) -> tuple[str, int, str]:
+    def run_default_with_final_report(self) -> tuple[str, int, FinalReport]:
         return self.run_with_final_report(task_uuid="uuid-1", user_prompt=self.data.user_prompt, type_id=self.data.id)
 
     def run_default_stream(self) -> None:
