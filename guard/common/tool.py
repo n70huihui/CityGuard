@@ -65,6 +65,25 @@ def compress_pngs_in_folder(folder_path: str, quality: int = 85) -> None:
         except Exception as e:
             print(f"处理 {file_path} 时出错: {str(e)}")
 
+
+def compress_jpg_in_place(folder_path: str, quality: int = 50) -> None:
+    """
+    递归压缩文件夹中所有 JPG 图片（原地修改）
+    :param folder_path: 文件夹路径
+    :param quality: 压缩质量 (1-100)，默认 85
+    :return: 无
+    """
+    folder = Path(folder_path)
+    for file_path in folder.rglob('*.jpg'):
+        try:
+            # 打开图片
+            img = Image.open(file_path)
+            # 原地保存（覆盖原文件）
+            img.save(file_path, 'JPEG', quality=quality)
+            print(f"已压缩: {file_path}")
+        except Exception as e:
+            print(f"处理 {file_path} 时出错: {str(e)}")
+
 if __name__ == "__main__":
-    compress_pngs_in_folder("C:\MyData\Projects\CodeSpace\Pycharm\CityGuard\datasets\\noise")
+    compress_jpg_in_place("D:\WebStorm\workspace\CityGuard\city_guard\src\\assets\dataset")
     # create_folder_structure(type_name="water", num=10)
