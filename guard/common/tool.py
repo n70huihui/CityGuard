@@ -85,5 +85,5 @@ def compress_jpg_in_place(folder_path: str, quality: int = 50) -> None:
             print(f"处理 {file_path} 时出错: {str(e)}")
 
 if __name__ == "__main__":
-    compress_jpg_in_place("D:\WebStorm\workspace\CityGuard\city_guard\src\\assets\dataset")
+    compress_pngs_in_folder("D:\Pycharm\pycharm\Pyspace\CityGuard\datasets\\tmp")
     # create_folder_structure(type_name="water", num=10)

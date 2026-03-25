@@ -70,11 +70,11 @@ class Planner:
 
     def run_with_final_report(self, task_uuid: str, user_prompt: str, type_id: int) -> tuple[str, int, FinalReport]:
         """
-        执行智能体规划流程，返回最终报告和当前步骤
+        执行智能体规划流程，返回当前步骤和最终报告
         :param task_uuid: 任务 uuid
         :param user_prompt: 用户 prompt
         :param type_id: type_name 类型下的 type_id，用于读取数据集
-        :return: 简易报告、最终报告和当前步骤
+        :return: 简易报告、当前步骤和最终报告
         """
         response = self.planner.invoke(
             {"messages": [HumanMessage(content=f"市民举报信息如下：{user_prompt}")]},
@@ -91,6 +91,26 @@ class Planner:
         return (messages[-1].content_blocks[-1]['text'],
                 len(messages),
                 final_report["structured_response"])
+
+    def run_with_reasoning(self, task_uuid: str, user_prompt: str, type_id: int) -> tuple[list, int, str]:
+        """
+        执行智能体规划流程，返回推理过程、当前步骤和最终回复
+        :param task_uuid: 任务 uuid
+        :param user_prompt: 用户 prompt
+        :param type_id: type_name 类型下的 type_id，用于读取数据集
+        :return: 推理过程、当前步骤和最终回复
+        """
+        response = self.planner.invoke(
+            {"messages": [HumanMessage(content=f"市民举报信息如下：{user_prompt}")]},
+            {"configurable": {"thread_id": task_uuid}},
+            context=PlannerContext(type_name=self.type_name, id=type_id)
+        )
+
+        messages = response["messages"]
+
+        content = messages[-1].content_blocks
+
+        return messages, len(messages), content[-1]['text']
 
 class DefaultPlanner(Planner):
     """

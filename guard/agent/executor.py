@@ -72,7 +72,7 @@ def get_monitor_report(monitor_name: str, task_description: str, runtime: ToolRu
     :param runtime: 工具运行时上下文
     :return: 监控视角分析报告
     """
-    # print(f"get_monitor_info: {monitor_name}")
+    # print(f"get_monitor_report: {monitor_name}")
     # 提取相关的举报信息
     type_name = runtime.context.type_name
     type_id = str(runtime.context.id)

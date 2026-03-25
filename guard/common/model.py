@@ -45,6 +45,7 @@ class RootAnalyzeReport(BaseModel):
     """根因分析报告"""
     type_name: str = Field(description="类型名称")
     id: int = Field(description="id 编号")
+    reasoning: list = Field(description="推理过程")
     response: str = Field(description="智能体报告")
     step: int = Field(description="推理步数")
     score: float = Field(description="推理得分")

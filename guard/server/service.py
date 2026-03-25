@@ -164,7 +164,7 @@ class PlannerService(Planner):
         )
 
         messages = response["messages"]
-        reasoning_content = messages[-1].content_blocks[-1]['text'] if messages[-1].content_blocks else ""
+        reasoning_content = messages[-1].content_blocks if messages[-1].content_blocks else ""
 
         # 使用 generator 生成最终报告（参考 run_with_final_report）
         prompt = generator_sys_prompt.format(user_prompt=user_prompt, agent_response=messages)

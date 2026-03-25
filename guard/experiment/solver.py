@@ -9,7 +9,8 @@ from guard.agent.executor import root_analyze_info, get_camera_report, get_monit
 from guard.agent.planner import Planner
 from guard.agent.verifier import verify
 from guard.common.model import RootAnalyzeReport, RootAnalyzeData
-from guard.common.prompt import ablation_monitor_sys_prompt, ablation_camera_sys_prompt, ablation_random_sys_prompt
+from guard.common.prompt import ablation_monitor_sys_prompt, ablation_camera_sys_prompt, ablation_random_sys_prompt, \
+    counterfactual_only_sys_prompt, baseline_sys_prompt, delayed_decision_only_sys_prompt
 
 
 class ExperimentSolver:
@@ -32,7 +33,7 @@ class ExperimentSolver:
         :param idx: 样例索引
         :return: 索引，报告
         """
-        result, step = self.planner.run_with_step(
+        reasoning, step, result = self.planner.run_with_reasoning(
             task_uuid=f"uuid-{idx}",
             user_prompt=self.data[idx].user_prompt,
             type_id=self.data[idx].id
@@ -40,34 +41,52 @@ class ExperimentSolver:
         return idx, RootAnalyzeReport(
             type_name=self.planner.type_name,
             id=self.data[idx].id,
+            reasoning=reasoning,
             response=result,
             step=step,
             score=0.0
         )
 
-    def _planner_execute(self, start_id: int) -> list[RootAnalyzeReport]:
+    def _simple_planner_execute(self, id: int) -> RootAnalyzeReport:
+        """
+        简单执行规划器，只执行一次
+        :param id: 执行 id 索引
+        :return: 最终报告
+        """
+        _, report = self._process_single_task(id)
+        return report
+
+    def _planner_execute(self, start_id: int, end_id: int) -> list[RootAnalyzeReport]:
         """
         执行规划器，串行执行
         :param start_id: 样例起始 id
+        :param end_id: 样例结束 id
         :return: 根因分析报告列表
         """
         start_idx = start_id - 1
+        end_idx = end_id
+        if end_id == -1:
+            end_idx = len(self.data)
         reports = []
-        for i in tqdm(range(start_idx, len(self.data)), desc='planner_execute'):
+        for i in tqdm(range(start_idx, end_idx), desc='planner_execute'):
             _, report = self._process_single_task(i)
             reports.append(report)
         return reports
 
-    def _planner_execute_multi(self, start_id: int, max_workers: int = 5) -> list[RootAnalyzeReport]:
+    def _planner_execute_multi(self, start_id: int, end_id: int, max_workers: int = 5) -> list[RootAnalyzeReport]:
         """
         执行规划器（线程池并行执行）
         :param start_id: 样例起始 id
+        :param end_id: 样例结束 id
         :param max_workers: 线程池最大工作线程数，默认 5
         :return: 根因分析报告列表
         """
         start_idx = start_id - 1
+        end_idx = end_id
         # 收集所有需要处理的索引
-        indices = list(range(start_idx, len(self.data)))
+        if end_id == -1:
+            end_idx = len(self.data)
+        indices = list(range(start_idx, end_idx))
 
         # 使用线程池并行执行
         results: dict[int, RootAnalyzeReport] = {}
@@ -120,7 +139,7 @@ class ExperimentSolver:
         file_path = os.path.join(dir_path, f"{self.planner.type_name}.csv")
 
         # 定义 CSV 表头
-        fieldnames = ["type_name", "id", "response", "step", "score"]
+        fieldnames = ["type_name", "id", "reasoning", "response", "step", "score"]
 
         # 检查文件是否存在以确定是否写入表头
         file_exists = os.path.exists(file_path)
@@ -138,22 +157,35 @@ class ExperimentSolver:
                 writer.writerow({
                     "type_name": report.type_name,
                     "id": report.id,
+                    "reasoning": str(report.reasoning),
                     "response": report.response,
                     "step": str(report.step),  # 将步骤列表转换为字符串
                     "score": str(report.score)
                 })
 
-    def solve(self, start_id: int = 1, max_workers: int = 5, is_multi: bool = True) -> None:
+    def simple_solve(self, id: int) -> None:
+        """
+        简单执行，只执行一次
+        :param id: 执行 id 索引
+        :return: 无
+        """
+        report = self._simple_planner_execute(id=id)
+        reports = [report]
+        self._report_verify(reports=reports)
+        print(reports)
+
+    def solve(self, start_id: int = 1, end_id: int = -1, max_workers: int = 5, is_multi: bool = True) -> None:
         """
         处理实验
         :param start_id: 样例起始 id
+        :param end_id: 样例结束 id
         :param max_workers: 线程池最大工作线程数，默认 5
         :param is_multi: 是否使用多线程执行，默认 True
         :return: 无
         """
         # 1. 执行规划器
         if is_multi:
-            reports = self._planner_execute_multi(start_id=start_id, max_workers=max_workers)
+            reports = self._planner_execute_multi(start_id=start_id, end_id=end_id, max_workers=max_workers)
         else:
             reports = self._planner_execute(start_id=start_id)
 
@@ -171,12 +203,15 @@ class CityGuardSolver(ExperimentSolver):
             experiment_name="cityguard"
         )
 
-class MotivationSolver(ExperimentSolver):
-    """Motivation 实验代码"""
+class BaselineSolver(ExperimentSolver):
+    """Baseline 实验代码"""
     def __init__(self, type_name: str):
         super().__init__(
-            planner=Planner(type_name=type_name),
-            experiment_name="motivation"
+            planner=Planner(
+                type_name=type_name,
+                system_prompt=baseline_sys_prompt.format(monitor_info=monitors)
+            ),
+            experiment_name="baseline"
         )
 
 class AblationMonitorSolver(ExperimentSolver):
@@ -214,6 +249,30 @@ class AblationRandomSolver(ExperimentSolver):
             experiment_name="ablation_random"
         )
 
+class CounterfactualOnlySolver(ExperimentSolver):
+    """反事实推理实验"""
+    def __init__(self, type_name: str):
+        super().__init__(
+            planner=Planner(
+                type_name=type_name,
+                system_prompt=counterfactual_only_sys_prompt.format(monitor_info=monitors)
+            ),
+            experiment_name="counterfactual_only"
+        )
+
+class DelayedDecisionOnlySolver(ExperimentSolver):
+    """延迟决策实验"""
+    def __init__(self, type_name: str):
+        super().__init__(
+            planner=Planner(
+                type_name=type_name,
+                system_prompt=delayed_decision_only_sys_prompt.format(monitor_info=monitors)
+            ),
+            experiment_name="delayed_decision_only"
+        )
+
 if __name__ == '__main__':
-    solver = AblationMonitorSolver(type_name='garbage')
-    solver.solve(start_id=1, max_workers=5, is_multi=True)
+    # solver = AblationMonitorSolver(type_name='garbage')
+    # solver.solve(start_id=1, max_workers=5, is_multi=True)
+    solver = DelayedDecisionOnlySolver(type_name='water')
+    solver.solve(start_id=1, max_workers=2, is_multi=True)

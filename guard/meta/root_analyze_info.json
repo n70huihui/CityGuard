@@ -195,8 +195,8 @@
     {
       "type_name": "water",
       "id": 2,
-      "user_prompt": "area_2 附近出现大面积积水",
-      "root_cause": "area_3 区域消防栓被破坏，水柱喷涌导致路面积水蔓延至 area_2"
+      "user_prompt": "road_2_1 出现大面积积水",
+      "root_cause": "area_3 区域消防栓被破坏，水柱喷涌导致路面积水蔓延至 road_2_1"
     },
     {
       "type_name": "water",
