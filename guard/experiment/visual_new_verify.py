@@ -1,3 +1,6 @@
+"""
+仅作测试用
+"""
 import os
 import csv
 import numpy as np
@@ -5,14 +8,14 @@ import matplotlib.pyplot as plt
 
 # ---------- 路径配置 ----------
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-RESULTS_DIR = os.path.join(THIS_DIR, "results")
-OUTPUT_DIR = os.path.join(RESULTS_DIR, "visual", "score_comparison")
+RESULTS_DIR = os.path.join(THIS_DIR, "results", "new_verify")
+OUTPUT_DIR = os.path.join(THIS_DIR, "results", "visual", "new_score_comparison")
 
 METHODS = {
-    "Baseline": os.path.join(RESULTS_DIR, "baseline"),
-    "Counterfactual": os.path.join(RESULTS_DIR, "counterfactual_only"),
-    "Delayed Decision": os.path.join(RESULTS_DIR, "delayed_decision_only"),
-    "CityGuard": os.path.join(RESULTS_DIR, "cityguard"),
+    "Baseline": os.path.join(RESULTS_DIR, "baseline.csv"),
+    "Counterfactual": os.path.join(RESULTS_DIR, "counterfactual_only.csv"),
+    "Delayed Decision": os.path.join(RESULTS_DIR, "delayed_decision_only.csv"),
+    "CityGuard": os.path.join(RESULTS_DIR, "cityguard.csv"),
 }
 
 TYPE_NAMES = ["accident", "garbage", "noise", "water"]
@@ -27,19 +30,9 @@ COLORS = ["#5B8FF9", "#5AD8A6", "#F6BD16", "#E8684A"]
 
 
 # ---------- 数据加载 ----------
-def load_scores(csv_path: str) -> list[float]:
-    """从 CSV 文件中读取 score 列"""
-    scores = []
-    with open(csv_path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            scores.append(float(row["score"]))
-    return scores
-
-
 def build_data() -> dict:
     """
-    构建数据字典，结构为:
+    从 new_verify 目录读取数据，结构为:
     {
         type_name: {
             method_name: [score, score, ...]
@@ -49,10 +42,13 @@ def build_data() -> dict:
     data = {}
     for tn in TYPE_NAMES:
         data[tn] = {}
-        for mname, mdir in METHODS.items():
-            csv_path = os.path.join(mdir, f"{tn}.csv")
-            if os.path.exists(csv_path):
-                data[tn][mname] = load_scores(csv_path)
+        for mname, csv_path in METHODS.items():
+            if not os.path.exists(csv_path):
+                continue
+            with open(csv_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                scores = [float(row[tn]) for row in reader if row[tn]]
+            data[tn][mname] = scores
     return data
 
 
@@ -81,7 +77,6 @@ def plot_mean_scores(data: dict):
         offset = (i - len(method_names) / 2 + 0.5) * width
         bars = ax.bar(x + offset, means, width, label=mname,
                       color=COLORS[i], alpha=0.75, edgecolor="white")
-        # 在柱子顶部标注均值
         for bar, m in zip(bars, means):
             ax.annotate(
                 f"{m:.2f}",
@@ -130,7 +125,6 @@ def plot_box_scores(data: dict):
         scores_list = [data[tn].get(m, []) for m in method_names]
         means = [np.mean(s) if s else 0 for s in scores_list]
 
-        # 箱线图
         bp = ax.boxplot(
             scores_list,
             tick_labels=method_names,
@@ -145,13 +139,11 @@ def plot_box_scores(data: dict):
             flierprops=dict(marker="o", markersize=4, alpha=0.6),
         )
 
-        # 为每个箱体填充颜色
         for patch, color in zip(bp["boxes"], COLORS):
             patch.set_facecolor(color)
             patch.set_alpha(0.65)
             patch.set_edgecolor(color)
 
-        # 在箱线图上方标注均值
         for i, (m, s) in enumerate(zip(means, scores_list)):
             ax.annotate(
                 f"{m:.2f}",
@@ -168,7 +160,6 @@ def plot_box_scores(data: dict):
         ax.tick_params(axis="y", labelsize=11)
         ax.grid(axis="y", linestyle="--", alpha=0.4)
 
-    # 底部共享图例
     handles = [plt.Rectangle((0, 0), 1, 1, facecolor=c, alpha=0.65, edgecolor=c)
                for c in COLORS]
     fig.legend(
@@ -241,7 +232,6 @@ def plot_std_scores(data: dict):
 if __name__ == "__main__":
     data = build_data()
 
-    # 打印统计摘要
     for tn in TYPE_NAMES:
         print(f"\n--- {tn} ---")
         for mname, scores in data[tn].items():
@@ -249,7 +239,6 @@ if __name__ == "__main__":
             std_s = np.std(scores)
             print(f"  {mname}: mean={mean_s:.2f}, std={std_s:.2f}, n={len(scores)}")
 
-    # 分别输出三张图
     plot_mean_scores(data)
     plot_std_scores(data)
     plot_box_scores(data)

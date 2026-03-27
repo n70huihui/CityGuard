@@ -274,5 +274,5 @@ class DelayedDecisionOnlySolver(ExperimentSolver):
 if __name__ == '__main__':
     # solver = AblationMonitorSolver(type_name='garbage')
     # solver.solve(start_id=1, max_workers=5, is_multi=True)
-    solver = DelayedDecisionOnlySolver(type_name='water')
-    solver.solve(start_id=1, max_workers=2, is_multi=True)
+    solver = DelayedDecisionOnlySolver(type_name='noise')
+    solver.solve(start_id=1, max_workers=5, is_multi=True)
