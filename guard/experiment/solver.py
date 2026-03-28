@@ -187,7 +187,7 @@ class ExperimentSolver:
         if is_multi:
             reports = self._planner_execute_multi(start_id=start_id, end_id=end_id, max_workers=max_workers)
         else:
-            reports = self._planner_execute(start_id=start_id)
+            reports = self._planner_execute(start_id=start_id, end_id=end_id)
 
         # 2. 验证报告，拿到得分
         self._report_verify(reports=reports)

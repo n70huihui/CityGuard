@@ -2,6 +2,7 @@ import os
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
 
 # ---------- 路径配置 ----------
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -237,6 +238,54 @@ def plot_std_scores(data: dict):
     print(f"[标准差柱状图] 已保存: {out_path}")
 
 
+# ---------- 绘图：核密度估计图 ----------
+def plot_kde_scores(data: dict):
+    """绘制各事件类型下四种方法的得分核密度估计图（2x2 子图）"""
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    plt.rcParams.update({
+        "font.family": "serif",
+        "font.serif": ["Times New Roman"],
+        "axes.unicode_minus": False,
+    })
+
+    method_names = list(METHODS.keys())
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    axes = axes.flatten()
+
+    for idx, tn in enumerate(TYPE_NAMES):
+        ax = axes[idx]
+        for i, mname in enumerate(method_names):
+            scores = np.array(data[tn].get(mname, []))
+            if len(scores) < 2:
+                continue
+            x_range = np.linspace(0, 10, 200)
+            kde = gaussian_kde(scores, bw_method=0.5)
+            y_vals = kde(x_range)
+            ax.plot(x_range, y_vals, color=COLORS[i], linewidth=2, label=mname)
+            ax.fill_between(x_range, y_vals, alpha=0.15, color=COLORS[i])
+
+        ax.set_title(TYPE_LABELS[tn], fontsize=16, fontweight="bold", pad=10)
+        ax.set_xlabel("Score", fontsize=13)
+        ax.set_ylabel("Density", fontsize=13)
+        ax.set_xlim(0, 10)
+        ax.tick_params(labelsize=11)
+        ax.grid(linestyle="--", alpha=0.4)
+
+    handles = [plt.Line2D([0], [0], color=c, linewidth=2) for c in COLORS]
+    fig.legend(handles, method_names, loc="lower center", ncol=4,
+               fontsize=13, frameon=False, bbox_to_anchor=(0.5, 0.02))
+    fig.suptitle("Score Density (KDE) by Event Type",
+                 fontsize=18, fontweight="bold", y=0.98)
+    plt.tight_layout(rect=[0, 0.06, 1, 0.95])
+
+    out_path = os.path.join(OUTPUT_DIR, "kde_scores.png")
+    fig.savefig(out_path, dpi=300, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    print(f"[核密度估计图] 已保存: {out_path}")
+
+
 # ---------- 主入口 ----------
 if __name__ == "__main__":
     data = build_data()
@@ -253,3 +302,4 @@ if __name__ == "__main__":
     plot_mean_scores(data)
     plot_std_scores(data)
     plot_box_scores(data)
+    plot_kde_scores(data)
