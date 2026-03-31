@@ -1,10 +1,13 @@
+from langchain.agents.structured_output import ToolStrategy
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 
 from env_utils.llm_args import *
 from langchain.agents import create_agent
 
-from guard.common.prompt import verifier_sys_prompt
+from guard.agent.executor import root_analyze_info
+from guard.common.model import VerifyReport
+from guard.common.prompt import verifier_sys_prompt, server_verifier_sys_prompt
 
 verifier = create_agent(
     model=ChatOpenAI(model=visual_model, base_url=base_url, api_key=api_key),
@@ -12,11 +15,27 @@ verifier = create_agent(
     system_prompt=verifier_sys_prompt.format()
 )
 
+server_verifier = create_agent(
+    model=ChatOpenAI(model=visual_model, base_url=base_url, api_key=api_key),
+    tools=[],
+    system_prompt=server_verifier_sys_prompt.format(),
+    response_format=ToolStrategy(VerifyReport)
+)
+
 def verify(report: str, answer: str) -> float:
     response = verifier.invoke(
         {"messages": [HumanMessage(content=f"智能体报告结果如下：{report}; 参考答案如下：{answer}")]},
     )
     return float(response["messages"][-1].content_blocks[-1]['text'])
+
+def server_verify(type_name: str, id: int, response: str) -> VerifyReport:
+    answer = root_analyze_info[type_name][id - 1].root_cause
+
+    response = server_verifier.invoke(
+        {"messages": [HumanMessage(content=f"智能体报告结果如下：{response}; 参考答案如下：{answer}")]},
+    )
+
+    return response["structured_response"]
 
 if __name__ == "__main__":
     print(verify(report="""车载视角分析结果明确指向 **area_1 东边 road_1_1 上的垃圾堆积问题**：

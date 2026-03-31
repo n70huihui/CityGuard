@@ -1,11 +1,11 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import AsyncGenerator
 
 from guard.server.schemas import TaskRequest, TaskResponse
-from guard.server.service import PlannerService, get_planner_service
+from guard.server.service import PlannerService, get_planner_service, VerifierService, get_verifier_service
 
 
 router = APIRouter(prefix="/api/v1", tags=["planner"])
@@ -54,6 +54,44 @@ async def create_task_stream(
             type_id=request.type_id,
             task_uuid=task_uuid,
         ):
+            yield event
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.post("/verify/stream")
+async def verify_stream(
+    file: UploadFile = File(..., description="CSV 文件"),
+    service: VerifierService = Depends(get_verifier_service),
+) -> StreamingResponse:
+    """
+    评估验证（流式响应）
+    上传 CSV 文件，串行调用验证模型，通过 SSE 逐条返回评估结果
+    """
+    if not file.filename or not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="请上传 CSV 文件")
+
+    content = await file.read()
+    try:
+        rows = service.parse_csv(content)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"CSV 解析失败: {str(e)}")
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="CSV 文件内容为空")
+
+    async def event_generator() -> AsyncGenerator[str, None]:
+        for event in service.run_stream(rows):
             yield event
 
     return StreamingResponse(

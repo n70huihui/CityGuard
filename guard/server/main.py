@@ -13,10 +13,10 @@ from guard.server.router import router
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时
-    print("CityGuard 服务启动中...")
+    print("CityGuard 服务启动...")
     yield
     # 关闭时
-    print("CityGuard 服务关闭中...")
+    print("CityGuard 服务关闭...")
 
 
 app = FastAPI(

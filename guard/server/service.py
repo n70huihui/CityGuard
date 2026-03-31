@@ -1,6 +1,8 @@
 import uuid
 from typing import Generator
 import json
+import csv
+import io
 
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
@@ -12,8 +14,9 @@ from guard.agent.executor import (
     monitors,
 )
 from guard.agent.generator import generator as final_report_generator
+from guard.agent.verifier import server_verify
 from guard.common.prompt import planner_sys_prompt, generator_sys_prompt
-from guard.common.model import FinalReport
+from guard.common.model import FinalReport, VerifyReport
 
 
 class PlannerService(Planner):
@@ -185,6 +188,91 @@ class PlannerService(Planner):
         return f"data: {json_data}\n\n"
 
 
+class VerifierService:
+    """评估验证服务"""
+
+    @staticmethod
+    def _format_sse_event(event: str, data: dict | str, step: int | None = None, event_type: str = "verify") -> str:
+        """格式化 SSE 事件"""
+        json_data = json.dumps({
+            "event": event,
+            "data": data,
+            "step": step,
+            "event_type": event_type,
+        }, ensure_ascii=False)
+        return f"data: {json_data}\n\n"
+
+    @staticmethod
+    def parse_csv(file_content: bytes) -> list[dict]:
+        """解析 CSV 文件内容，提取 type_name, id, response 三列"""
+        text = file_content.decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(text))
+        rows = []
+        required_fields = {"type_name", "id", "response"}
+        for row in reader:
+            if not required_fields.issubset(row.keys()):
+                raise ValueError(f"CSV 缺少必要列，需要: {required_fields}")
+            rows.append({
+                "type_name": row["type_name"].strip(),
+                "id": int(row["id"].strip()),
+                "response": row["response"].strip(),
+            })
+        return rows
+
+    def run_stream(self, rows: list[dict]) -> Generator[str, None, None]:
+        """
+        串行评估每条数据，通过 SSE 流式返回结果
+        :param rows: 解析后的 CSV 行列表，每行包含 type_name, id, response
+        :return: SSE 事件生成器
+        """
+        total = len(rows)
+
+        yield self._format_sse_event(
+            "verify_start",
+            {"message": "开始评估", "total": total},
+            step=0,
+            event_type="verify",
+        )
+
+        for i, row in enumerate(rows):
+            try:
+                report: VerifyReport = server_verify(
+                    type_name=row["type_name"],
+                    id=row["id"],
+                    response=row["response"],
+                )
+                yield self._format_sse_event(
+                    "verify_item",
+                    {
+                        "index": i,
+                        "type_name": row["type_name"],
+                        "id": row["id"],
+                        "report": report.model_dump(),
+                    },
+                    step=i + 1,
+                    event_type="verify",
+                )
+            except Exception as e:
+                yield self._format_sse_event(
+                    "verify_error",
+                    {
+                        "index": i,
+                        "type_name": row["type_name"],
+                        "id": row["id"],
+                        "error": str(e),
+                    },
+                    step=i + 1,
+                    event_type="verify",
+                )
+
+        yield self._format_sse_event(
+            "verify_complete",
+            {"message": "评估完成", "total": total},
+            step=total,
+            event_type="verify",
+        )
+
+
 # 全局服务实例
 _planner_service: PlannerService | None = None
 
@@ -195,3 +283,14 @@ def get_planner_service() -> PlannerService:
     if _planner_service is None:
         _planner_service = PlannerService()
     return _planner_service
+
+
+_verifier_service: VerifierService | None = None
+
+
+def get_verifier_service() -> VerifierService:
+    """获取 Verifier 服务实例"""
+    global _verifier_service
+    if _verifier_service is None:
+        _verifier_service = VerifierService()
+    return _verifier_service

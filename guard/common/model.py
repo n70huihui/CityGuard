@@ -34,6 +34,18 @@ class FinalReport(BaseModel):
     reasoning_process_report: str = Field(description="推理过程报告")
     final_report: str = Field(description="最终结果报告")
 
+class VerifyReport(BaseModel):
+    """验证报告"""
+    total_score: str = Field(description="总分，0.0 - 10.0 的 1 位小数")
+    root_cause_accuracy_score: str = Field(description="根因准确性得分，0.0 - 4.0 的 1 位小数")
+    root_cause_accuracy_score_reason: str = Field(description="根因准确性得分简短原因")
+    evidence_sufficiency_score: str = Field(description="证据充分性得分，0.0 - 2.5 的 1 位小数")
+    evidence_sufficiency_score_reason: str = Field(description="证据充分性得分简短原因")
+    reasoning_reliability_score: str = Field(description="推理可靠性，0.0 - 2.0 的 1 位小数")
+    reasoning_reliability_score_reason: str = Field(description="推理可靠性简短原因")
+    express_clarity_score: str = Field(description="表达明确性得分，0.0 - 1.5 的 1 位小数")
+    express_clarity_score_reason: str = Field(description="表达明确性简短原因")
+
 class RootAnalyzeData(BaseModel):
     """根因分析数据"""
     type_name: str = Field(description="类型名称")

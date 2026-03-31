@@ -30,3 +30,10 @@ class FinalReportData(BaseModel):
     analyze_goal: str = Field(..., description="分析目标")
     reasoning_process_report: str = Field(..., description="推理过程报告")
     final_report: str = Field(..., description="最终结果报告")
+
+
+class VerifyCsvRow(BaseModel):
+    """CSV 中每行的数据"""
+    type_name: str = Field(..., description="异常类型名称")
+    id: int = Field(..., description="案例ID")
+    response: str = Field(..., description="智能体报告内容")
